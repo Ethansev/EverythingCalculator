@@ -24,7 +24,7 @@ export default function AutoLoanCalculatorPage() {
     tradeInValue: 0,
     amountOwedOnTradeIn: 0,
     salesTax: 7.25,
-    fees: 800,
+    fees: 1200,
     includeTaxesInLoan: true,
   });
 
