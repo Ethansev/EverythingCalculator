@@ -11,6 +11,7 @@ The Everything Calculator is a collection of beautifully designed, interactive c
 ### 🚗 Available Calculators
 
 #### Auto Loan Calculator
+- Inspired by https://www.calculator.net/auto-loan-calculator.html
 - Calculate monthly payments with detailed breakdowns
 - Interactive visualizations of loan costs
 - Compare different loan terms side-by-side
