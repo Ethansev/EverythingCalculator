@@ -1,6 +1,6 @@
 "use client"
 
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, type LabelProps } from 'recharts'
+import { PieChart, Pie, Cell, ResponsiveContainer,  Tooltip, type LabelProps } from 'recharts'
 import type { LoanResults } from '../utils/loanCalculations'
 
 interface LoanBreakdownChartProps {
@@ -84,7 +84,7 @@ export function LoanBreakdownChart({ results }: LoanBreakdownChartProps) {
       <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
         Loan Cost Breakdown
       </h3>
-      <div className="h-80">
+      <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
@@ -102,22 +102,44 @@ export function LoanBreakdownChart({ results }: LoanBreakdownChartProps) {
               ))}
             </Pie>
             <Tooltip content={<CustomTooltip />} />
-            <Legend 
-              verticalAlign="bottom" 
-              height={36}
-              formatter={(value, entry) => (
-                <span className="text-sm text-gray-700 dark:text-gray-300">
-                  {value}: {formatCurrency(typeof entry.value === 'number' ? entry.value : 0)}
-                </span>
-              )}
-            />
           </PieChart>
         </ResponsiveContainer>
       </div>
-      <div className="mt-4 text-center">
-        <p className="text-sm text-gray-600 dark:text-gray-400">
-          Total Vehicle Cost: <span className="font-semibold text-gray-900 dark:text-white">{formatCurrency(results.totalCost)}</span>
-        </p>
+      
+      {/* Custom Legend with Values */}
+      <div className="mt-6 space-y-2">
+        {data.map((item, index) => (
+          <div key={index} className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div 
+                className="w-4 h-4 rounded" 
+                style={{ backgroundColor: item.color }}
+              />
+              <span className="text-sm text-gray-700 dark:text-gray-300">
+                {item.name}
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-gray-900 dark:text-white">
+                {formatCurrency(item.value)}
+              </span>
+              <span className="text-sm text-gray-500 dark:text-gray-400">
+                ({((item.value / results.totalCost) * 100).toFixed(1)}%)
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+      
+      <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+            Total Vehicle Cost
+          </span>
+          <span className="text-lg font-bold text-gray-900 dark:text-white">
+            {formatCurrency(results.totalCost)}
+          </span>
+        </div>
       </div>
     </div>
   )
