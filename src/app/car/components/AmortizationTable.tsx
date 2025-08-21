@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ChevronDown, ChevronUp, Download } from "lucide-react";
-import type { LoanResults } from "../utils/loanCalculations";
+import type { LoanResults } from "@/types/car";
 
 interface AmortizationTableProps {
   results: LoanResults;

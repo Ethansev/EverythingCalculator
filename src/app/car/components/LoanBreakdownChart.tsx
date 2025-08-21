@@ -1,7 +1,7 @@
 "use client"
 
 import { PieChart, Pie, Cell, ResponsiveContainer,  Tooltip, type LabelProps } from 'recharts'
-import type { LoanResults } from '../utils/loanCalculations'
+import type { LoanResults } from '@/types/car'
 
 interface LoanBreakdownChartProps {
   results: LoanResults

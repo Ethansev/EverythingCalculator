@@ -10,7 +10,7 @@ import {
   Area,
   AreaChart,
 } from "recharts";
-import type { LoanResults } from "../utils/loanCalculations";
+import type { LoanResults } from "@/types/car";
 
 interface PaymentScheduleChartProps {
   results: LoanResults;

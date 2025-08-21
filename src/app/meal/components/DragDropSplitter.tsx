@@ -1,64 +1,81 @@
-"use client"
+"use client";
 
-import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, useDraggable, useDroppable } from "@dnd-kit/core"
-import { useState } from "react"
-import { motion } from "framer-motion"
-import { Button } from "@/components/ui/button"
-import { UserPlus, Users, DollarSign, Sparkles } from "lucide-react"
-import type { Person, ExpenseItem } from "@/lib/types"
+import {
+  DndContext,
+  DragEndEvent,
+  DragOverlay,
+  DragStartEvent,
+  useDraggable,
+  useDroppable,
+} from "@dnd-kit/core";
+import { useState } from "react";
+import { motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { UserPlus, Users, DollarSign, Sparkles } from "lucide-react";
+import type { Person, ExpenseItem } from "@/types/meal";
 
 interface DragDropSplitterProps {
-  items: ExpenseItem[]
-  participants: Person[]
-  onItemsChange: (items: ExpenseItem[]) => void
+  items: ExpenseItem[];
+  participants: Person[];
+  onItemsChange: (items: ExpenseItem[]) => void;
 }
 
-export function DragDropSplitter({ items, participants, onItemsChange }: DragDropSplitterProps) {
-  const [draggedPerson, setDraggedPerson] = useState<Person | null>(null)
+export function DragDropSplitter({
+  items,
+  participants,
+  onItemsChange,
+}: DragDropSplitterProps) {
+  const [draggedPerson, setDraggedPerson] = useState<Person | null>(null);
 
   const handleDragStart = (event: DragStartEvent) => {
-    const person = participants.find(p => p.id === event.active.id)
-    setDraggedPerson(person || null)
-  }
+    const person = participants.find((p) => p.id === event.active.id);
+    setDraggedPerson(person || null);
+  };
 
   const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event
-    setDraggedPerson(null)
+    const { active, over } = event;
+    setDraggedPerson(null);
 
     if (over && active.id !== over.id) {
-      const personId = active.id as string
-      const itemId = over.id as string
-      
-      onItemsChange(items.map(item => {
-        if (item.id === itemId) {
-          const isAlreadyAssigned = item.assignedTo.includes(personId)
-          return {
-            ...item,
-            assignedTo: isAlreadyAssigned 
-              ? item.assignedTo.filter(id => id !== personId)
-              : [...item.assignedTo, personId]
+      const personId = active.id as string;
+      const itemId = over.id as string;
+
+      onItemsChange(
+        items.map((item) => {
+          if (item.id === itemId) {
+            const isAlreadyAssigned = item.assignedTo.includes(personId);
+            return {
+              ...item,
+              assignedTo: isAlreadyAssigned
+                ? item.assignedTo.filter((id) => id !== personId)
+                : [...item.assignedTo, personId],
+            };
           }
-        }
-        return item
-      }))
+          return item;
+        })
+      );
     }
-  }
+  };
 
   const splitEqually = () => {
-    onItemsChange(items.map(item => ({
-      ...item,
-      assignedTo: participants.map(p => p.id)
-    })))
-  }
+    onItemsChange(
+      items.map((item) => ({
+        ...item,
+        assignedTo: participants.map((p) => p.id),
+      }))
+    );
+  };
 
   const clearAllAssignments = () => {
-    onItemsChange(items.map(item => ({
-      ...item,
-      assignedTo: []
-    })))
-  }
+    onItemsChange(
+      items.map((item) => ({
+        ...item,
+        assignedTo: [],
+      }))
+    );
+  };
 
-  const getPersonById = (id: string) => participants.find(p => p.id === id)
+  const getPersonById = (id: string) => participants.find((p) => p.id === id);
 
   return (
     <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
@@ -107,7 +124,9 @@ export function DragDropSplitter({ items, participants, onItemsChange }: DragDro
             <ItemCard
               key={item.id}
               item={item}
-              assignedParticipants={item.assignedTo.map(id => getPersonById(id)!).filter(Boolean)}
+              assignedParticipants={item.assignedTo
+                .map((id) => getPersonById(id)!)
+                .filter(Boolean)}
             />
           ))}
         </div>
@@ -119,14 +138,19 @@ export function DragDropSplitter({ items, participants, onItemsChange }: DragDro
               Assignment Progress
             </span>
             <span className="text-blue-600 dark:text-blue-400">
-              {items.filter(item => item.assignedTo.length > 0).length} / {items.length}
+              {items.filter((item) => item.assignedTo.length > 0).length} /{" "}
+              {items.length}
             </span>
           </div>
           <div className="w-full bg-blue-200 dark:bg-blue-800 rounded-full h-2">
             <div
               className="bg-blue-600 h-2 rounded-full transition-all duration-300"
               style={{
-                width: `${(items.filter(item => item.assignedTo.length > 0).length / items.length) * 100}%`
+                width: `${
+                  (items.filter((item) => item.assignedTo.length > 0).length /
+                    items.length) *
+                  100
+                }%`,
               }}
             />
           </div>
@@ -144,24 +168,21 @@ export function DragDropSplitter({ items, participants, onItemsChange }: DragDro
         )}
       </DragOverlay>
     </DndContext>
-  )
+  );
 }
 
 function ParticipantCard({ person }: { person: Person }) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    isDragging,
-  } = useDraggable({
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: person.id,
-  })
+  });
 
   return (
     <div
       ref={setNodeRef}
-      className={`cursor-grab active:cursor-grabbing ${isDragging ? 'opacity-50' : ''}`}
-      style={{ touchAction: 'none' }}
+      className={`cursor-grab active:cursor-grabbing ${
+        isDragging ? "opacity-50" : ""
+      }`}
+      style={{ touchAction: "none" }}
       {...listeners}
       {...attributes}
     >
@@ -181,26 +202,29 @@ function ParticipantCard({ person }: { person: Person }) {
         </span>
       </motion.div>
     </div>
-  )
+  );
 }
 
-function ItemCard({ item, assignedParticipants }: { 
-  item: ExpenseItem
-  assignedParticipants: Person[] 
+function ItemCard({
+  item,
+  assignedParticipants,
+}: {
+  item: ExpenseItem;
+  assignedParticipants: Person[];
 }) {
   const { isOver, setNodeRef } = useDroppable({
     id: item.id,
-  })
+  });
 
   return (
     <div
       ref={setNodeRef}
       className={`border-2 border-dashed rounded-lg p-4 transition-all ${
         assignedParticipants.length > 0
-          ? 'border-green-300 dark:border-green-600 bg-green-50 dark:bg-green-900/20'
+          ? "border-green-300 dark:border-green-600 bg-green-50 dark:bg-green-900/20"
           : isOver
-          ? 'border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20'
-          : 'border-gray-300 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500'
+          ? "border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20"
+          : "border-gray-300 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500"
       }`}
     >
       <div className="flex items-center justify-between mb-3">
@@ -215,7 +239,7 @@ function ItemCard({ item, assignedParticipants }: {
             </span>
           </div>
         </div>
-        
+
         {assignedParticipants.length > 0 && (
           <div className="text-right">
             <div className="text-sm text-gray-600 dark:text-gray-300">
@@ -245,14 +269,18 @@ function ItemCard({ item, assignedParticipants }: {
           ))}
         </div>
       ) : (
-        <div className={`text-center text-sm transition-colors ${
-          isOver 
-            ? 'text-blue-600 dark:text-blue-400 font-medium' 
-            : 'text-gray-400 dark:text-gray-500'
-        }`}>
-          {isOver ? 'Drop here to assign this item' : 'Drag people here to assign this item'}
+        <div
+          className={`text-center text-sm transition-colors ${
+            isOver
+              ? "text-blue-600 dark:text-blue-400 font-medium"
+              : "text-gray-400 dark:text-gray-500"
+          }`}
+        >
+          {isOver
+            ? "Drop here to assign this item"
+            : "Drag people here to assign this item"}
         </div>
       )}
     </div>
-  )
+  );
 }

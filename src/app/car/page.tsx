@@ -5,11 +5,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Calculator, DollarSign, TrendingUp } from "lucide-react";
 import Link from "next/link";
-import {
-  calculateLoan,
-  type LoanInputs,
-  type LoanResults,
-} from "./utils/loanCalculations";
+import type { LoanInputs, LoanResults } from "@/types/car";
+import { calculateLoan } from "@/utils/car/loanCalculations";
 import { LoanBreakdownChart } from "./components/LoanBreakdownChart";
 import { PaymentScheduleChart } from "./components/PaymentScheduleChart";
 import { AmortizationTable } from "./components/AmortizationTable";

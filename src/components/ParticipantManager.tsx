@@ -1,51 +1,63 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { Button } from "@/components/ui/button"
-import { Plus, X, User, Users, Palette } from "lucide-react"
-import type { Person } from "@/lib/types"
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { Plus, X, User, Users, Palette } from "lucide-react";
+import type { Person } from "@/types/meal";
 
 interface ParticipantManagerProps {
-  participants: Person[]
-  onParticipantsChange: (participants: Person[]) => void
+  participants: Person[];
+  onParticipantsChange: (participants: Person[]) => void;
 }
 
 const PARTICIPANT_COLORS = [
-  '#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6',
-  '#EC4899', '#14B8A6', '#F97316', '#6366F1', '#84CC16'
-]
+  "#3B82F6",
+  "#EF4444",
+  "#10B981",
+  "#F59E0B",
+  "#8B5CF6",
+  "#EC4899",
+  "#14B8A6",
+  "#F97316",
+  "#6366F1",
+  "#84CC16",
+];
 
-export function ParticipantManager({ participants, onParticipantsChange }: ParticipantManagerProps) {
-  const [newParticipantName, setNewParticipantName] = useState("")
-  const [isAdding, setIsAdding] = useState(false)
+export function ParticipantManager({
+  participants,
+  onParticipantsChange,
+}: ParticipantManagerProps) {
+  const [newParticipantName, setNewParticipantName] = useState("");
+  const [isAdding, setIsAdding] = useState(false);
 
   const addParticipant = () => {
     if (newParticipantName.trim()) {
       const newParticipant: Person = {
         id: Date.now().toString(),
         name: newParticipantName.trim(),
-        color: PARTICIPANT_COLORS[participants.length % PARTICIPANT_COLORS.length]
-      }
-      
-      onParticipantsChange([...participants, newParticipant])
-      setNewParticipantName("")
-      setIsAdding(false)
+        color:
+          PARTICIPANT_COLORS[participants.length % PARTICIPANT_COLORS.length],
+      };
+
+      onParticipantsChange([...participants, newParticipant]);
+      setNewParticipantName("");
+      setIsAdding(false);
     }
-  }
+  };
 
   const removeParticipant = (id: string) => {
-    onParticipantsChange(participants.filter(p => p.id !== id))
-  }
+    onParticipantsChange(participants.filter((p) => p.id !== id));
+  };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      addParticipant()
-    } else if (e.key === 'Escape') {
-      setIsAdding(false)
-      setNewParticipantName("")
+    if (e.key === "Enter") {
+      addParticipant();
+    } else if (e.key === "Escape") {
+      setIsAdding(false);
+      setNewParticipantName("");
     }
-  }
+  };
 
   return (
     <div className="space-y-6">
@@ -90,7 +102,7 @@ export function ParticipantManager({ participants, onParticipantsChange }: Parti
                   </div>
                 </div>
               </div>
-              
+
               <Button
                 variant="ghost"
                 size="sm"
@@ -131,8 +143,8 @@ export function ParticipantManager({ participants, onParticipantsChange }: Parti
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    setIsAdding(false)
-                    setNewParticipantName("")
+                    setIsAdding(false);
+                    setNewParticipantName("");
                   }}
                 >
                   Cancel
@@ -177,5 +189,5 @@ export function ParticipantManager({ participants, onParticipantsChange }: Parti
         </div>
       )}
     </div>
-  )
+  );
 }

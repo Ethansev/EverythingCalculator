@@ -10,11 +10,8 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import {
-  calculateLoansForComparison,
-  type LoanInputs,
-  type LoanResults,
-} from "../utils/loanCalculations";
+import type { LoanInputs, LoanResults } from "@/types/car";
+import { calculateLoansForComparison } from "@/utils/car/loanCalculations";
 
 interface LoanComparisonChartProps {
   currentInputs: LoanInputs;

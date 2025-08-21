@@ -1,74 +1,107 @@
-"use client"
+"use client";
 
-import { motion } from "framer-motion"
-import { Button } from "@/components/ui/button"
-import { Share2, Download, DollarSign, Receipt, Copy, Check } from "lucide-react"
-import { useState } from "react"
-import type { Person, ExpenseItem, SplitCalculation, MealTotals } from "@/lib/types"
+import { motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import {
+  Share2,
+  Download,
+  DollarSign,
+  Receipt,
+  Copy,
+  Check,
+} from "lucide-react";
+import { useState } from "react";
+import type { Person, ExpenseItem, MealTotals } from "@/types/meal";
+import type { SplitCalculation } from "@/types/common";
 
 interface ExpenseSummaryProps {
-  items: ExpenseItem[]
-  participants: Person[]
-  totals?: MealTotals
+  items: ExpenseItem[];
+  participants: Person[];
+  totals?: MealTotals;
 }
 
-export function ExpenseSummary({ items, participants, totals }: ExpenseSummaryProps) {
-  const [copied, setCopied] = useState(false)
+export function ExpenseSummary({
+  items,
+  participants,
+  totals,
+}: ExpenseSummaryProps) {
+  const [copied, setCopied] = useState(false);
 
-  const subtotal = items.reduce((sum, item) => sum + item.price, 0)
-  
+  const subtotal = items.reduce((sum, item) => sum + item.price, 0);
+
   // Use provided totals or calculate defaults
   const currentTotals = totals || {
     subtotal,
     tax: subtotal * 0.0875,
     tip: subtotal * 0.18,
-    total: subtotal * 1.2675
-  }
+    total: subtotal * 1.2675,
+  };
 
-  const calculations: SplitCalculation[] = participants.map(person => {
-    const personItems = items.filter(item => item.assignedTo.includes(person.id))
+  const calculations: SplitCalculation[] = participants.map((person) => {
+    const personItems = items.filter((item) =>
+      item.assignedTo.includes(person.id)
+    );
     const personSubtotal = personItems.reduce((sum, item) => {
-      return sum + (item.price / item.assignedTo.length)
-    }, 0)
-    
+      return sum + item.price / item.assignedTo.length;
+    }, 0);
+
     // Calculate this person's share of tax and tip based on their subtotal percentage
-    const sharePercentage = subtotal > 0 ? personSubtotal / subtotal : 0
-    const personTax = currentTotals.tax * sharePercentage
-    const personTip = currentTotals.tip * sharePercentage
-    const personTotal = personSubtotal + personTax + personTip
-    
+    const sharePercentage = subtotal > 0 ? personSubtotal / subtotal : 0;
+    const personTax = currentTotals.tax * sharePercentage;
+    const personTip = currentTotals.tip * sharePercentage;
+    const personTotal = personSubtotal + personTax + personTip;
+
     return {
       personId: person.id,
       subtotal: personSubtotal,
       tax: personTax,
       tip: personTip,
       total: personTotal,
-      items: personItems
-    }
-  })
-  const getPersonById = (id: string) => participants.find(p => p.id === id)!
+      items: personItems,
+    };
+  });
+  const getPersonById = (id: string) => participants.find((p) => p.id === id)!;
 
   const generateSummaryText = () => {
-    const header = "💰 Expense Split Summary\n\n"
-    const totalsText = `Subtotal: $${currentTotals.subtotal.toFixed(2)}\nTax: $${currentTotals.tax.toFixed(2)}\nTip: $${currentTotals.tip.toFixed(2)}\nTotal: $${currentTotals.total.toFixed(2)}\n\n`
-    
-    const splits = calculations.map(calc => {
-      const person = getPersonById(calc.personId)
-      const itemsList = calc.items.map(item => 
-        `  • ${item.name}: $${(item.price / item.assignedTo.length).toFixed(2)}`
-      ).join('\n')
-      
-      return `${person.name}: $${calc.total.toFixed(2)}\n  Subtotal: $${calc.subtotal.toFixed(2)}\n  Tax: $${calc.tax.toFixed(2)}\n  Tip: $${calc.tip.toFixed(2)}\n${itemsList}`
-    }).join('\n\n')
-    
-    return header + totalsText + splits
-  }
+    const header = "💰 Expense Split Summary\n\n";
+    const totalsText = `Subtotal: $${currentTotals.subtotal.toFixed(
+      2
+    )}\nTax: $${currentTotals.tax.toFixed(
+      2
+    )}\nTip: $${currentTotals.tip.toFixed(
+      2
+    )}\nTotal: $${currentTotals.total.toFixed(2)}\n\n`;
+
+    const splits = calculations
+      .map((calc) => {
+        const person = getPersonById(calc.personId);
+        const itemsList = calc.items
+          .map(
+            (item) =>
+              `  • ${item.name}: $${(
+                item.price / item.assignedTo.length
+              ).toFixed(2)}`
+          )
+          .join("\n");
+
+        return `${person.name}: $${calc.total.toFixed(
+          2
+        )}\n  Subtotal: $${calc.subtotal.toFixed(
+          2
+        )}\n  Tax: $${calc.tax.toFixed(2)}\n  Tip: $${calc.tip.toFixed(
+          2
+        )}\n${itemsList}`;
+      })
+      .join("\n\n");
+
+    return header + totalsText + splits;
+  };
 
   const copyToClipboard = () => {
-    navigator.clipboard.writeText(generateSummaryText())
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
+    navigator.clipboard.writeText(generateSummaryText());
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
     <div className="space-y-6">
@@ -95,14 +128,16 @@ export function ExpenseSummary({ items, participants, totals }: ExpenseSummaryPr
             Total expense split among {participants.length} people
           </p>
         </div>
-        
+
         {/* Breakdown */}
         <div className="grid grid-cols-3 gap-4 text-center">
           <div>
             <div className="text-lg font-semibold text-blue-900 dark:text-blue-100">
               ${currentTotals.subtotal.toFixed(2)}
             </div>
-            <div className="text-sm text-blue-600 dark:text-blue-400">Subtotal</div>
+            <div className="text-sm text-blue-600 dark:text-blue-400">
+              Subtotal
+            </div>
           </div>
           <div>
             <div className="text-lg font-semibold text-blue-900 dark:text-blue-100">
@@ -122,7 +157,7 @@ export function ExpenseSummary({ items, participants, totals }: ExpenseSummaryPr
       {/* Individual Splits */}
       <div className="space-y-4">
         {calculations.map((calc, index) => {
-          const person = getPersonById(calc.personId)
+          const person = getPersonById(calc.personId);
           return (
             <motion.div
               key={person.id}
@@ -144,7 +179,8 @@ export function ExpenseSummary({ items, participants, totals }: ExpenseSummaryPr
                       {person.name}
                     </h4>
                     <p className="text-sm text-gray-600 dark:text-gray-300">
-                      {calc.items.length} item{calc.items.length !== 1 ? 's' : ''}
+                      {calc.items.length} item
+                      {calc.items.length !== 1 ? "s" : ""}
                     </p>
                   </div>
                 </div>
@@ -153,10 +189,12 @@ export function ExpenseSummary({ items, participants, totals }: ExpenseSummaryPr
                     ${calc.total.toFixed(2)}
                   </div>
                   <div className="text-sm text-gray-500 dark:text-gray-400">
-                    {((calc.total / currentTotals.total) * 100).toFixed(1)}% of total
+                    {((calc.total / currentTotals.total) * 100).toFixed(1)}% of
+                    total
                   </div>
                   <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                    Items: ${calc.subtotal.toFixed(2)} + Tax: ${calc.tax.toFixed(2)} + Tip: ${calc.tip.toFixed(2)}
+                    Items: ${calc.subtotal.toFixed(2)} + Tax: $
+                    {calc.tax.toFixed(2)} + Tip: ${calc.tip.toFixed(2)}
                   </div>
                 </div>
               </div>
@@ -164,7 +202,10 @@ export function ExpenseSummary({ items, participants, totals }: ExpenseSummaryPr
               {/* Items breakdown */}
               <div className="space-y-2">
                 {calc.items.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between text-sm">
+                  <div
+                    key={item.id}
+                    className="flex items-center justify-between text-sm"
+                  >
                     <span className="text-gray-700 dark:text-gray-300">
                       {item.name}
                       {item.assignedTo.length > 1 && (
@@ -180,7 +221,7 @@ export function ExpenseSummary({ items, participants, totals }: ExpenseSummaryPr
                 ))}
               </div>
             </motion.div>
-          )
+          );
         })}
       </div>
 
@@ -199,12 +240,12 @@ export function ExpenseSummary({ items, participants, totals }: ExpenseSummaryPr
             </>
           )}
         </Button>
-        
+
         <Button variant="outline">
           <Share2 className="w-4 h-4 mr-2" />
           Share
         </Button>
-        
+
         <Button variant="outline">
           <Download className="w-4 h-4 mr-2" />
           Export PDF
@@ -223,5 +264,5 @@ export function ExpenseSummary({ items, participants, totals }: ExpenseSummaryPr
         </ul>
       </div>
     </div>
-  )
+  );
 }

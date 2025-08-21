@@ -1,33 +1,45 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { motion } from "framer-motion"
-import { Button } from "@/components/ui/button"
-import { Plus, Edit3, Trash2, DollarSign, Package, Receipt } from "lucide-react"
-import type { ExpenseItem, MealTotals } from "@/lib/types"
+import { useState } from "react";
+import { motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import {
+  Plus,
+  Edit3,
+  Trash2,
+  DollarSign,
+  Package,
+  Receipt,
+} from "lucide-react";
+import type { ExpenseItem, MealTotals } from "@/types/meal";
 
 interface ExpenseItemsListProps {
-  items: ExpenseItem[]
-  onItemsChange: (items: ExpenseItem[]) => void
-  totals?: MealTotals
-  onTotalsChange?: (totals: MealTotals) => void
+  items: ExpenseItem[];
+  onItemsChange: (items: ExpenseItem[]) => void;
+  totals?: MealTotals;
+  onTotalsChange?: (totals: MealTotals) => void;
 }
 
-export function ExpenseItemsList({ items, onItemsChange, totals, onTotalsChange }: ExpenseItemsListProps) {
-  const [editingItem, setEditingItem] = useState<string | null>(null)
-  const [newItem, setNewItem] = useState({ name: "", price: "" })
-  const [isAddingNew, setIsAddingNew] = useState(false)
+export function ExpenseItemsList({
+  items,
+  onItemsChange,
+  totals,
+  onTotalsChange,
+}: ExpenseItemsListProps) {
+  const [editingItem, setEditingItem] = useState<string | null>(null);
+  const [newItem, setNewItem] = useState({ name: "", price: "" });
+  const [isAddingNew, setIsAddingNew] = useState(false);
 
   const updateItem = (id: string, updates: Partial<ExpenseItem>) => {
-    onItemsChange(items.map(item => 
-      item.id === id ? { ...item, ...updates } : item
-    ))
-    setEditingItem(null)
-  }
+    onItemsChange(
+      items.map((item) => (item.id === id ? { ...item, ...updates } : item))
+    );
+    setEditingItem(null);
+  };
 
   const deleteItem = (id: string) => {
-    onItemsChange(items.filter(item => item.id !== id))
-  }
+    onItemsChange(items.filter((item) => item.id !== id));
+  };
 
   const addNewItem = () => {
     if (newItem.name.trim() && newItem.price) {
@@ -35,36 +47,37 @@ export function ExpenseItemsList({ items, onItemsChange, totals, onTotalsChange 
         id: Date.now().toString(),
         name: newItem.name.trim(),
         price: parseFloat(newItem.price),
-        assignedTo: []
-      }
-      onItemsChange([...items, item])
-      setNewItem({ name: "", price: "" })
-      setIsAddingNew(false)
+        assignedTo: [],
+      };
+      onItemsChange([...items, item]);
+      setNewItem({ name: "", price: "" });
+      setIsAddingNew(false);
     }
-  }
+  };
 
-  const subtotal = items.reduce((sum, item) => sum + item.price, 0)
-  
+  const subtotal = items.reduce((sum, item) => sum + item.price, 0);
+
   // Initialize totals if not provided
   const currentTotals = totals || {
     subtotal,
     tax: subtotal * 0.0875, // Default 8.75% tax
-    tip: subtotal * 0.18,   // Default 18% tip
-    total: 0
-  }
-  
+    tip: subtotal * 0.18, // Default 18% tip
+    total: 0,
+  };
+
   // Recalculate total
-  const calculatedTotal = currentTotals.subtotal + currentTotals.tax + currentTotals.tip
-  
+  const calculatedTotal =
+    currentTotals.subtotal + currentTotals.tax + currentTotals.tip;
+
   const updateTotals = (updates: Partial<MealTotals>) => {
-    const newTotals = { 
-      ...currentTotals, 
+    const newTotals = {
+      ...currentTotals,
       subtotal, // Always use calculated subtotal
-      ...updates 
-    }
-    newTotals.total = newTotals.subtotal + newTotals.tax + newTotals.tip
-    onTotalsChange?.(newTotals)
-  }
+      ...updates,
+    };
+    newTotals.total = newTotals.subtotal + newTotals.tax + newTotals.tip;
+    onTotalsChange?.(newTotals);
+  };
 
   return (
     <div className="space-y-6">
@@ -92,7 +105,9 @@ export function ExpenseItemsList({ items, onItemsChange, totals, onTotalsChange 
                 <input
                   type="text"
                   value={item.name}
-                  onChange={(e) => updateItem(item.id, { name: e.target.value })}
+                  onChange={(e) =>
+                    updateItem(item.id, { name: e.target.value })
+                  }
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                   placeholder="Item name"
                 />
@@ -102,14 +117,22 @@ export function ExpenseItemsList({ items, onItemsChange, totals, onTotalsChange 
                     type="number"
                     step="0.01"
                     value={item.price}
-                    onChange={(e) => updateItem(item.id, { price: parseFloat(e.target.value) || 0 })}
+                    onChange={(e) =>
+                      updateItem(item.id, {
+                        price: parseFloat(e.target.value) || 0,
+                      })
+                    }
                     className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                     placeholder="0.00"
                   />
                   <Button size="sm" onClick={() => setEditingItem(null)}>
                     Save
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => setEditingItem(null)}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setEditingItem(null)}
+                  >
                     Cancel
                   </Button>
                 </div>
@@ -159,7 +182,9 @@ export function ExpenseItemsList({ items, onItemsChange, totals, onTotalsChange 
               <input
                 type="text"
                 value={newItem.name}
-                onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
+                onChange={(e) =>
+                  setNewItem({ ...newItem, name: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                 placeholder="Item name"
                 autoFocus
@@ -170,7 +195,9 @@ export function ExpenseItemsList({ items, onItemsChange, totals, onTotalsChange 
                   type="number"
                   step="0.01"
                   value={newItem.price}
-                  onChange={(e) => setNewItem({ ...newItem, price: e.target.value })}
+                  onChange={(e) =>
+                    setNewItem({ ...newItem, price: e.target.value })
+                  }
                   className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                   placeholder="0.00"
                 />
@@ -185,8 +212,8 @@ export function ExpenseItemsList({ items, onItemsChange, totals, onTotalsChange 
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    setIsAddingNew(false)
-                    setNewItem({ name: "", price: "" })
+                    setIsAddingNew(false);
+                    setNewItem({ name: "", price: "" });
                   }}
                 >
                   Cancel
@@ -214,12 +241,12 @@ export function ExpenseItemsList({ items, onItemsChange, totals, onTotalsChange 
             Bill Summary
           </h3>
         </div>
-        
+
         <div className="space-y-4">
           {/* Subtotal */}
           <div className="flex items-center justify-between">
             <span className="text-gray-700 dark:text-gray-300">
-              Subtotal ({items.length} item{items.length !== 1 ? 's' : ''})
+              Subtotal ({items.length} item{items.length !== 1 ? "s" : ""})
             </span>
             <div className="flex items-center">
               <DollarSign className="w-4 h-4 text-gray-400 mr-1" />
@@ -239,7 +266,9 @@ export function ExpenseItemsList({ items, onItemsChange, totals, onTotalsChange 
                   type="number"
                   step="0.01"
                   value={currentTotals.tax.toFixed(2)}
-                  onChange={(e) => updateTotals({ tax: parseFloat(e.target.value) || 0 })}
+                  onChange={(e) =>
+                    updateTotals({ tax: parseFloat(e.target.value) || 0 })
+                  }
                   className="w-20 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                 />
                 <span className="text-gray-500 text-sm">
@@ -259,7 +288,9 @@ export function ExpenseItemsList({ items, onItemsChange, totals, onTotalsChange 
                   type="number"
                   step="0.01"
                   value={currentTotals.tip.toFixed(2)}
-                  onChange={(e) => updateTotals({ tip: parseFloat(e.target.value) || 0 })}
+                  onChange={(e) =>
+                    updateTotals({ tip: parseFloat(e.target.value) || 0 })
+                  }
                   className="w-20 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                 />
                 <span className="text-gray-500 text-sm">
@@ -271,13 +302,17 @@ export function ExpenseItemsList({ items, onItemsChange, totals, onTotalsChange 
 
           {/* Quick tip buttons */}
           <div className="flex items-center space-x-2">
-            <span className="text-sm text-gray-600 dark:text-gray-400">Quick tip:</span>
+            <span className="text-sm text-gray-600 dark:text-gray-400">
+              Quick tip:
+            </span>
             {[15, 18, 20, 22].map((percent) => (
               <Button
                 key={percent}
                 variant="outline"
                 size="sm"
-                onClick={() => updateTotals({ tip: subtotal * (percent / 100) })}
+                onClick={() =>
+                  updateTotals({ tip: subtotal * (percent / 100) })
+                }
                 className="text-xs px-2 py-1 h-7"
               >
                 {percent}%
@@ -302,5 +337,5 @@ export function ExpenseItemsList({ items, onItemsChange, totals, onTotalsChange 
         </div>
       </div>
     </div>
-  )
+  );
 }
