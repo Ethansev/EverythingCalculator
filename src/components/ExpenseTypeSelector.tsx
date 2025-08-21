@@ -36,11 +36,11 @@ export function ExpenseTypeSelector() {
     {
       id: 'car' as const,
       href: '/expenses/car',
-      title: 'Car & Transportation',
-      description: 'Split car rental, gas, and road trip expenses',
+      title: 'Auto Loan Calculator',
+      description: 'Calculate monthly payments and visualize loan costs',
       icon: Car,
       color: 'from-orange-400 to-orange-600',
-      features: ['Rental costs', 'Gas tracking', 'Trip segments']
+      features: ['Payment calculator', 'Interactive charts', 'Amortization schedule']
     }
   ]
 

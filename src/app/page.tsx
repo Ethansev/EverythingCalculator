@@ -6,10 +6,10 @@ export default function Home() {
       <div className="container mx-auto px-4 py-8">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white mb-4">
-            Group Expense Calculator
+            The Everything Calculator
           </h1>
           <p className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-            Split bills effortlessly with friends and family. Upload receipts, assign expenses, and calculate fair shares instantly.
+            Your all-in-one calculator hub. Split expenses with friends, calculate auto loans, and manage finances with beautiful visualizations.
           </p>
         </div>
         

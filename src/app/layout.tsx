@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Group Expense Calculator",
-  description: "Split bills effortlessly with friends and family. Upload receipts, assign expenses, and calculate fair shares instantly.",
+  title: "The Everything Calculator",
+  description: "Your all-in-one calculator for expenses, loans, and more. Split bills, calculate auto loans, and manage finances with powerful visualizations.",
 };
 
 export default function RootLayout({
