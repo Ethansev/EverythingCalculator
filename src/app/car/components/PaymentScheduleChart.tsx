@@ -17,6 +17,48 @@ interface PaymentScheduleChartProps {
   loanTerm: number;
 }
 
+const formatCurrency = (value: number) => {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(value);
+};
+
+interface TooltipPayload {
+  name: string;
+  value: number;
+  color: string;
+}
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: TooltipPayload[];
+  label?: string;
+}
+
+const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+        <p className="font-medium text-gray-900 dark:text-white mb-2">
+          {label}
+        </p>
+        {payload.map((entry, index) => (
+          <p key={index} className="text-sm" style={{ color: entry.color }}>
+            {entry.name}: {formatCurrency(entry.value)}
+          </p>
+        ))}
+        <p className="text-sm font-medium text-gray-900 dark:text-white mt-1 pt-1 border-t border-gray-200 dark:border-gray-700">
+          Total: {formatCurrency(payload[0].value + payload[1].value)}
+        </p>
+      </div>
+    );
+  }
+  return null;
+};
+
 export function PaymentScheduleChart({
   results,
   loanTerm,
@@ -46,54 +88,12 @@ export function PaymentScheduleChart({
     });
   }
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
-  };
-
   interface ChartDataPoint {
     year: string;
     principal: number;
     interest: number;
     total: number;
   }
-
-  interface TooltipPayload {
-    name: string;
-    value: number;
-    color: string;
-  }
-
-  interface CustomTooltipProps {
-    active?: boolean;
-    payload?: TooltipPayload[];
-    label?: string;
-  }
-
-  const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
-          <p className="font-medium text-gray-900 dark:text-white mb-2">
-            {label}
-          </p>
-          {payload.map((entry, index) => (
-            <p key={index} className="text-sm" style={{ color: entry.color }}>
-              {entry.name}: {formatCurrency(entry.value)}
-            </p>
-          ))}
-          <p className="text-sm font-medium text-gray-900 dark:text-white mt-1 pt-1 border-t border-gray-200 dark:border-gray-700">
-            Total: {formatCurrency(payload[0].value + payload[1].value)}
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
 
   return (
     <div>

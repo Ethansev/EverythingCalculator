@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Calculator, DollarSign, TrendingUp } from "lucide-react";
@@ -25,13 +25,9 @@ export default function AutoLoanCalculatorPage() {
     includeTaxesInLoan: true,
   });
 
-  const [results, setResults] = useState<LoanResults | null>(null);
   const [activeTab, setActiveTab] = useState<"charts" | "schedule">("charts");
 
-  useEffect(() => {
-    const calculated = calculateLoan(inputs);
-    setResults(calculated);
-  }, [inputs]);
+  const results: LoanResults = calculateLoan(inputs);
 
   const handleInputChange = (
     field: keyof LoanInputs,

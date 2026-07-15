@@ -1,10 +1,49 @@
 "use client"
 
-import { PieChart, Pie, Cell, ResponsiveContainer,  Tooltip, type LabelProps } from 'recharts'
+import { PieChart, Pie, Cell, ResponsiveContainer,  Tooltip, type PieLabelRenderProps } from 'recharts'
 import type { LoanResults } from '@/types/car'
 
 interface LoanBreakdownChartProps {
   results: LoanResults
+}
+
+const formatCurrency = (value: number) => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(value)
+}
+
+interface TooltipPayload {
+  name: string;
+  value: number;
+  color: string;
+}
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: TooltipPayload[];
+  totalCost: number;
+}
+
+const CustomTooltip = ({ active, payload, totalCost }: CustomTooltipProps) => {
+  if (active && payload && payload.length) {
+    const data = payload[0]
+    return (
+      <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+        <p className="font-medium text-gray-900 dark:text-white">{data.name}</p>
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          {formatCurrency(data.value)}
+        </p>
+        <p className="text-xs text-gray-500 dark:text-gray-500">
+          {((data.value / totalCost) * 100).toFixed(1)}% of total
+        </p>
+      </div>
+    )
+  }
+  return null
 }
 
 export function LoanBreakdownChart({ results }: LoanBreakdownChartProps) {
@@ -26,51 +65,13 @@ export function LoanBreakdownChart({ results }: LoanBreakdownChartProps) {
     }
   ]
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(value)
-  }
-
   interface ChartDataPoint {
     name: string;
     value: number;
     color: string;
   }
 
-  interface TooltipPayload {
-    name: string;
-    value: number;
-    color: string;
-  }
-
-  interface CustomTooltipProps {
-    active?: boolean;
-    payload?: TooltipPayload[];
-  }
-
-  const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
-    if (active && payload && payload.length) {
-      const data = payload[0]
-      return (
-        <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
-          <p className="font-medium text-gray-900 dark:text-white">{data.name}</p>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            {formatCurrency(data.value)}
-          </p>
-          <p className="text-xs text-gray-500 dark:text-gray-500">
-            {((data.value / results.totalCost) * 100).toFixed(1)}% of total
-          </p>
-        </div>
-      )
-    }
-    return null
-  }
-
-  const renderCustomLabel = (props: LabelProps) => {
+  const renderCustomLabel = (props: PieLabelRenderProps) => {
     const { value } = props
     if (typeof value === 'number') {
       const percent = ((value / results.totalCost) * 100).toFixed(1)
@@ -101,7 +102,7 @@ export function LoanBreakdownChart({ results }: LoanBreakdownChartProps) {
                 <Cell key={`cell-${index}`} fill={entry.color} />
               ))}
             </Pie>
-            <Tooltip content={<CustomTooltip />} />
+            <Tooltip content={<CustomTooltip totalCost={results.totalCost} />} />
           </PieChart>
         </ResponsiveContainer>
       </div>

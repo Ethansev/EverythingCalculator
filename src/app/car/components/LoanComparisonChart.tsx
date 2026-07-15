@@ -9,6 +9,7 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  type XAxisTickContentProps,
 } from "recharts";
 import type { LoanInputs, LoanResults } from "@/types/car";
 import { calculateLoansForComparison } from "@/utils/car/loanCalculations";
@@ -17,6 +18,81 @@ interface LoanComparisonChartProps {
   currentInputs: LoanInputs;
   currentResults: LoanResults;
 }
+
+const formatCurrency = (value: number) => {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(value);
+};
+
+interface ChartDataPoint {
+  term: string;
+  termMonths: number;
+  monthlyPayment: number;
+  principal: number;
+  totalInterest: number;
+  totalCost: number;
+  isCurrentTerm: boolean;
+}
+
+interface TooltipPayload {
+  payload: ChartDataPoint;
+}
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: TooltipPayload[];
+  label?: string;
+  viewMode: "monthly" | "total";
+}
+
+const CustomTooltip = ({
+  active,
+  payload,
+  label,
+  viewMode,
+}: CustomTooltipProps) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    return (
+      <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+        <p className="font-medium text-gray-900 dark:text-white mb-2">
+          {label}
+          {data.isCurrentTerm && (
+            <span className="ml-2 text-xs bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 px-1.5 py-0.5 rounded">
+              Current
+            </span>
+          )}
+        </p>
+        <div className="space-y-1">
+          {viewMode === "monthly" ? (
+            <>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Total Interest: {formatCurrency(data.totalInterest)}
+              </p>
+              <p className="text-sm font-medium text-gray-900 dark:text-white">
+                Monthly Payment: {formatCurrency(data.monthlyPayment)}
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Total Interest: {formatCurrency(data.totalInterest)}
+              </p>
+              <p className="text-sm font-medium text-gray-900 dark:text-white">
+                Total Cost: {formatCurrency(data.totalCost)}
+              </p>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
 
 export function LoanComparisonChart({
   currentInputs,
@@ -38,81 +114,6 @@ export function LoanComparisonChart({
       isCurrentTerm: isCurrentTerm,
     };
   });
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
-  };
-
-  interface ChartDataPoint {
-    term: string;
-    termMonths: number;
-    monthlyPayment: number;
-    principal: number;
-    totalInterest: number;
-    totalCost: number;
-    isCurrentTerm: boolean;
-  }
-
-  interface TooltipPayload {
-    payload: ChartDataPoint;
-  }
-
-  interface CustomTooltipProps {
-    active?: boolean;
-    payload?: TooltipPayload[];
-    label?: string;
-  }
-
-  interface TickProps {
-    x: number;
-    y: number;
-    payload: { value: string };
-  }
-
-  const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload;
-      return (
-        <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
-          <p className="font-medium text-gray-900 dark:text-white mb-2">
-            {label}
-            {data.isCurrentTerm && (
-              <span className="ml-2 text-xs bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 px-1.5 py-0.5 rounded">
-                Current
-              </span>
-            )}
-          </p>
-          <div className="space-y-1">
-            {viewMode === "monthly" ? (
-              <>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Total Interest: {formatCurrency(data.totalInterest)}
-                </p>
-                <p className="text-sm font-medium text-gray-900 dark:text-white">
-                  Monthly Payment: {formatCurrency(data.monthlyPayment)}
-                </p>
-              </>
-            ) : (
-              <>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Total Interest: {formatCurrency(data.totalInterest)}
-                </p>
-                <p className="text-sm font-medium text-gray-900 dark:text-white">
-                  Total Cost: {formatCurrency(data.totalCost)}
-                </p>
-              </>
-            )}
-          </div>
-        </div>
-      );
-    }
-    return null;
-  };
 
   return (
     <div>
@@ -156,9 +157,10 @@ export function LoanComparisonChart({
             <XAxis
               dataKey="term"
               className="text-gray-600 dark:text-gray-400"
-              tick={(props: TickProps) => {
+              tick={(props: XAxisTickContentProps) => {
                 const { x, y, payload } = props;
-                const isCurrentTerm = payload.value.includes("*");
+                const label = String(payload.value);
+                const isCurrentTerm = label.includes("*");
 
                 return (
                   <text
@@ -170,7 +172,7 @@ export function LoanComparisonChart({
                     fontSize={12}
                     fontWeight={isCurrentTerm ? "600" : "400"}
                   >
-                    {payload.value}
+                    {label}
                   </text>
                 );
               }}
@@ -187,7 +189,7 @@ export function LoanComparisonChart({
                   : `$${(value / 1000).toFixed(0)}k`
               }
             />
-            <Tooltip content={<CustomTooltip />} />
+            <Tooltip content={<CustomTooltip viewMode={viewMode} />} />
             {viewMode === "monthly" ? (
               <>
                 <Bar
