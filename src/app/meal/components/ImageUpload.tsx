@@ -143,6 +143,11 @@ export function ImageUpload({
     setScanState({ status: "idle" });
   };
 
+  const handleStartFromScratch = () => {
+    scanCounterRef.current += 1;
+    onStartFromScratch();
+  };
+
   if (uploadedImage) {
     return (
       <div className="space-y-6">
@@ -204,7 +209,7 @@ export function ImageUpload({
             <ScanErrorNotice
               message={scanState.message}
               onRetry={clearImage}
-              onStartFromScratch={onStartFromScratch}
+              onStartFromScratch={handleStartFromScratch}
             />
           )}
         </AnimatePresence>
@@ -219,7 +224,7 @@ export function ImageUpload({
           <ScanErrorNotice
             message={scanState.message}
             onRetry={() => setScanState({ status: "idle" })}
-            onStartFromScratch={onStartFromScratch}
+            onStartFromScratch={handleStartFromScratch}
           />
         )}
       </AnimatePresence>
@@ -278,7 +283,7 @@ export function ImageUpload({
       {/* Start-from-scratch card */}
       <button
         type="button"
-        onClick={onStartFromScratch}
+        onClick={handleStartFromScratch}
         className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-2xl p-8 text-center cursor-pointer transition-all hover:border-green-400 dark:hover:border-green-500"
       >
         <PencilLine className="w-12 h-12 mx-auto mb-4 text-gray-400" />
