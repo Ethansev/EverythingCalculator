@@ -72,6 +72,7 @@ const RECEIPT_SCHEMA = {
 const PROMPT = [
   'Extract the line items and charges from this restaurant receipt photo.',
   'Report each line item with its printed quantity and the total price for the line.',
+  'When a line begins with a count (for example "2 Beer 13.00"), put that count in the quantity field and exclude it from the name.',
   'Do not include tax, tip, gratuity, service charges, or discounts as items —',
   'report those in their dedicated fields, in dollars, using null for anything',
   'not printed on the receipt. Report discounts as positive numbers.',
