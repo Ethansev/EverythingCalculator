@@ -2,7 +2,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { NextResponse } from 'next/server'
 import { isRecord, parseScannedReceipt } from '@/utils/meal/receiptScan'
 
-// Vercel function limit; scan calls are capped at 30s below.
+// Vercel function limit; retries are disabled so the 30s request timeout is the true cap.
 export const maxDuration = 60
 
 // ~8MB of base64 ≈ 6MB image — far above the client's ~1600px downscale.
@@ -111,7 +111,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Image is too large.' }, { status: 400 })
   }
 
-  const client = new Anthropic()
+  const client = new Anthropic({ maxRetries: 0 })
   try {
     const response = await client.messages.create(
       {

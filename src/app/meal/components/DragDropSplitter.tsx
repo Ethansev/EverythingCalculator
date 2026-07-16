@@ -99,7 +99,7 @@ function ExactSplitEditor({
             type="number"
             min="0"
             step="0.01"
-            value={drafts[person.id]}
+            value={drafts[person.id] ?? ""}
             onChange={(event) =>
               setDrafts({ ...drafts, [person.id]: event.target.value })
             }

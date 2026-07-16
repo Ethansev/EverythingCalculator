@@ -84,6 +84,19 @@ export default function MealExpensePage() {
     setScannedTotal(scan.total);
   };
 
+  const handleParticipantsChange = (next: Person[]) => {
+    const validIds = new Set(next.map((p) => p.id));
+    setItems((prev) =>
+      prev.map((item) => {
+        const kept = item.assignedTo.filter((id) => validIds.has(id));
+        return kept.length === item.assignedTo.length
+          ? item
+          : { ...item, assignedTo: kept, exactSplits: undefined };
+      })
+    );
+    setParticipants(next);
+  };
+
   const handleStartFromScratch = () => {
     setStartedFromScratch(true);
     setUploadedImage(null);
@@ -140,7 +153,11 @@ export default function MealExpensePage() {
                       <motion.button
                         type="button"
                         onClick={() => {
-                          if (index <= maxStepReached) goToStep(index);
+                          if (index <= currentStepIndex) {
+                            goToStep(index);
+                          } else if (index <= maxStepReached && canProceed()) {
+                            goToStep(index);
+                          }
                         }}
                         disabled={index > maxStepReached}
                         className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${
@@ -207,7 +224,7 @@ export default function MealExpensePage() {
             {currentStep === "participants" && (
               <ParticipantManager
                 participants={participants}
-                onParticipantsChange={setParticipants}
+                onParticipantsChange={handleParticipantsChange}
               />
             )}
 

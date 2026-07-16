@@ -39,8 +39,14 @@ export function ExpenseItemsList({
   const [isAddingNew, setIsAddingNew] = useState(false);
 
   const updateItem = (id: string, updates: Partial<ReceiptItem>) => {
-    onItemsChange(items.map((item) => (item.id === id ? { ...item, ...updates } : item)));
-    setEditingItem(null);
+    onItemsChange(
+      items.map((item) => {
+        if (item.id !== id) return item;
+        const merged = { ...item, ...updates };
+        if (updates.price !== undefined) merged.exactSplits = undefined;
+        return merged;
+      })
+    );
   };
 
   const deleteItem = (id: string) => {
@@ -110,10 +116,10 @@ export function ExpenseItemsList({
       <div className="text-center">
         <Package className="w-12 h-12 mx-auto text-blue-600 dark:text-blue-400 mb-4" />
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-          Review Detected Items
+          Review Items
         </h3>
         <p className="text-gray-600 dark:text-gray-300">
-          Verify and edit the items and prices detected from your receipt
+          Add, edit, or remove items and charges before splitting
         </p>
       </div>
 
@@ -141,16 +147,17 @@ export function ExpenseItemsList({
                   <input
                     type="number"
                     step="0.01"
+                    min="0"
                     value={item.price}
                     onChange={(e) =>
                       updateItem(item.id, {
-                        price: parseFloat(e.target.value) || 0,
+                        price: Math.max(0, parseFloat(e.target.value) || 0),
                       })
                     }
                     className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                     placeholder="0.00"
                   />
-                  <Button size="sm" onClick={() => setEditingItem(null)}>
+                  <Button size="sm" onClick={() => setEditingItem(null)} type="button">
                     Save
                   </Button>
                   <Button
@@ -342,7 +349,7 @@ export function ExpenseItemsList({
       {/* Totals footer */}
       <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 space-y-1">
         <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
-          <span>Subtotal ({items.length} items)</span>
+          <span>Subtotal ({items.length} {items.length === 1 ? "item" : "items"})</span>
           <span>{formatCurrency(totals.subtotal)}</span>
         </div>
         {totals.charges.map((charge) => (

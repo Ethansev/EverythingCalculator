@@ -167,6 +167,35 @@ describe("calculateSplit", () => {
     expect(result.grandTotal).toBe(9);
   });
 
+  it("totals-only mode: empty people returns correct subtotal, charges, grandTotal, and empty perPerson", () => {
+    const items = [
+      item({ id: "i1", price: 15, assignedTo: ["a"] }),
+      item({ id: "i2", price: 10, assignedTo: ["b"] }),
+    ];
+    const charges: Charge[] = [
+      { id: "t1", kind: "tax", label: "Tax", mode: "amount", value: 2.5 },
+    ];
+    const result = calculateSplit(items, charges, []);
+    expect(result.subtotal).toBe(25);
+    expect(result.charges).toHaveLength(1);
+    expect(result.charges[0].amount).toBe(2.5);
+    expect(result.grandTotal).toBe(27.5);
+    expect(result.perPerson).toHaveLength(0);
+  });
+
+  it("stale-assignee filtering: unknown ids are ignored and known-person totals still sum correctly", () => {
+    const items = [
+      item({ id: "i1", price: 9, assignedTo: ["a", "ghost"] }),
+    ];
+    const result = calculateSplit(items, [], people);
+    // Only "a" is a known person; "ghost" is filtered out by calculateSplit
+    const alice = result.perPerson.find((p) => p.personId === "a");
+    expect(alice).toBeDefined();
+    expect(alice?.subtotal).toBe(9);
+    const sumOfSubtotals = result.perPerson.reduce((s, p) => s + p.subtotal, 0);
+    expect(Math.round(sumOfSubtotals * 100)).toBe(Math.round(result.subtotal * 100));
+  });
+
   it("per-person totals always sum to the grand total (invariant sweep)", () => {
     const items: ReceiptItem[] = [
       item({ id: "i1", price: 12.5, assignedTo: ["a"] }),

@@ -39,7 +39,7 @@ export function parseScannedReceipt(value: unknown): ScannedReceipt | null {
     if (typeof price !== 'number' || !Number.isFinite(price)) return null
     const validQuantity =
       typeof quantity === 'number' && Number.isInteger(quantity) && quantity >= 1
-    items.push({ name: name.trim(), price, quantity: validQuantity ? quantity : 1 })
+    items.push({ name: name.trim(), price, quantity: validQuantity ? Math.min(quantity, 50) : 1 })
   }
   const tax = nullableAmount(value.tax)
   const tip = nullableAmount(value.tip)

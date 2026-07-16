@@ -99,17 +99,22 @@ export function ImageUpload({
 }: ImageUploadProps) {
   const [scanState, setScanState] = useState<ScanState>({ status: "idle" });
   const cameraInputRef = useRef<HTMLInputElement>(null);
+  const scanCounterRef = useRef(0);
 
   const scanFile = useCallback(
     async (file: File) => {
+      scanCounterRef.current += 1;
+      const token = scanCounterRef.current;
       setScanState({ status: "scanning" });
       try {
         const { dataUrl, base64 } = await downscaleImage(file);
         onImageUpload(dataUrl);
         const scan = await requestScan(base64);
+        if (scanCounterRef.current !== token) return;
         onScanComplete(scan);
         setScanState({ status: "done", itemCount: scan.items.length });
       } catch (error) {
+        if (scanCounterRef.current !== token) return;
         const message =
           error instanceof Error ? error.message : "Couldn't read this receipt.";
         setScanState({ status: "error", message });
@@ -133,6 +138,7 @@ export function ImageUpload({
   });
 
   const clearImage = () => {
+    scanCounterRef.current += 1;
     onImageUpload(null);
     setScanState({ status: "idle" });
   };
