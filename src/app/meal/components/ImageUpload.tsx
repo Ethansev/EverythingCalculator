@@ -24,6 +24,40 @@ type ScanState =
 
 const MAX_DIMENSION = 1600;
 
+function ScanErrorNotice({
+  message,
+  onRetry,
+  onStartFromScratch,
+}: {
+  message: string;
+  onRetry: () => void;
+  onStartFromScratch: () => void;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="text-center space-y-4"
+    >
+      <div className="inline-flex items-center px-6 py-3 rounded-full bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+        <AlertTriangle className="w-5 h-5 mr-2 text-red-600 dark:text-red-400" />
+        <span className="text-red-800 dark:text-red-200 font-medium">
+          {message}
+        </span>
+      </div>
+      <div className="flex justify-center gap-3">
+        <Button variant="outline" onClick={onRetry}>
+          Try another photo
+        </Button>
+        <Button onClick={onStartFromScratch}>
+          <PencilLine className="w-4 h-4 mr-2" />
+          Enter items manually
+        </Button>
+      </div>
+    </motion.div>
+  );
+}
+
 async function downscaleImage(file: File): Promise<{ dataUrl: string; base64: string }> {
   const bitmap = await createImageBitmap(file);
   const scale = Math.min(1, MAX_DIMENSION / Math.max(bitmap.width, bitmap.height));
@@ -161,27 +195,11 @@ export function ImageUpload({
           )}
 
           {scanState.status === "error" && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-center space-y-4"
-            >
-              <div className="inline-flex items-center px-6 py-3 rounded-full bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
-                <AlertTriangle className="w-5 h-5 mr-2 text-red-600 dark:text-red-400" />
-                <span className="text-red-800 dark:text-red-200 font-medium">
-                  {scanState.message}
-                </span>
-              </div>
-              <div className="flex justify-center gap-3">
-                <Button variant="outline" onClick={clearImage}>
-                  Try another photo
-                </Button>
-                <Button onClick={onStartFromScratch}>
-                  <PencilLine className="w-4 h-4 mr-2" />
-                  Enter items manually
-                </Button>
-              </div>
-            </motion.div>
+            <ScanErrorNotice
+              message={scanState.message}
+              onRetry={clearImage}
+              onStartFromScratch={onStartFromScratch}
+            />
           )}
         </AnimatePresence>
       </div>
@@ -189,9 +207,20 @@ export function ImageUpload({
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {/* Scan card */}
-      <div className="space-y-4">
+    <div className="space-y-6">
+      <AnimatePresence>
+        {scanState.status === "error" && (
+          <ScanErrorNotice
+            message={scanState.message}
+            onRetry={() => setScanState({ status: "idle" })}
+            onStartFromScratch={onStartFromScratch}
+          />
+        )}
+      </AnimatePresence>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Scan card */}
+        <div className="space-y-4">
         <div
           {...getRootProps()}
           className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all h-full ${
@@ -254,6 +283,7 @@ export function ImageUpload({
           No receipt? Add people and type in items and charges yourself.
         </p>
       </button>
+      </div>
     </div>
   );
 }
