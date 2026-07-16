@@ -3,37 +3,43 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import {
-  Plus,
-  Edit3,
-  Trash2,
-  DollarSign,
-  Package,
-  Receipt,
-} from "lucide-react";
-import type { ExpenseItem, MealTotals } from "@/types/meal";
+import { Plus, Edit3, Trash2, Package, Receipt, AlertTriangle, X } from "lucide-react";
+import type { Charge, ChargeKind, ReceiptItem } from "@/types/meal";
+import { calculateSplit } from "@/utils/meal/splitCalculations";
 
 interface ExpenseItemsListProps {
-  items: ExpenseItem[];
-  onItemsChange: (items: ExpenseItem[]) => void;
-  totals?: MealTotals;
-  onTotalsChange?: (totals: MealTotals) => void;
+  items: ReceiptItem[];
+  onItemsChange: (items: ReceiptItem[]) => void;
+  charges: Charge[];
+  onChargesChange: (charges: Charge[]) => void;
+  scannedTotal: number | null;
 }
+
+const CHARGE_DEFS: { kind: ChargeKind; label: string }[] = [
+  { kind: "tax", label: "Tax" },
+  { kind: "tip", label: "Tip" },
+  { kind: "gratuity", label: "Gratuity" },
+  { kind: "discount", label: "Discount" },
+];
+
+const TIP_PRESETS = [15, 18, 20];
+
+const formatCurrency = (value: number) =>
+  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value);
 
 export function ExpenseItemsList({
   items,
   onItemsChange,
-  totals,
-  onTotalsChange,
+  charges,
+  onChargesChange,
+  scannedTotal,
 }: ExpenseItemsListProps) {
   const [editingItem, setEditingItem] = useState<string | null>(null);
   const [newItem, setNewItem] = useState({ name: "", price: "" });
   const [isAddingNew, setIsAddingNew] = useState(false);
 
-  const updateItem = (id: string, updates: Partial<ExpenseItem>) => {
-    onItemsChange(
-      items.map((item) => (item.id === id ? { ...item, ...updates } : item))
-    );
+  const updateItem = (id: string, updates: Partial<ReceiptItem>) => {
+    onItemsChange(items.map((item) => (item.id === id ? { ...item, ...updates } : item)));
     setEditingItem(null);
   };
 
@@ -42,45 +48,65 @@ export function ExpenseItemsList({
   };
 
   const addNewItem = () => {
-    if (newItem.name.trim() && newItem.price) {
-      const item: ExpenseItem = {
-        id: Date.now().toString(),
-        name: newItem.name.trim(),
-        price: parseFloat(newItem.price),
-        assignedTo: [],
-      };
-      onItemsChange([...items, item]);
+    const price = parseFloat(newItem.price);
+    if (newItem.name.trim() && Number.isFinite(price) && price >= 0) {
+      onItemsChange([
+        ...items,
+        { id: crypto.randomUUID(), name: newItem.name.trim(), price, assignedTo: [] },
+      ]);
       setNewItem({ name: "", price: "" });
       setIsAddingNew(false);
     }
   };
 
-  const subtotal = items.reduce((sum, item) => sum + item.price, 0);
-
-  // Initialize totals if not provided
-  const currentTotals = totals || {
-    subtotal,
-    tax: subtotal * 0.0875, // Default 8.75% tax
-    tip: subtotal * 0.18, // Default 18% tip
-    total: 0,
+  const addCharge = (kind: ChargeKind, label: string) => {
+    onChargesChange([
+      ...charges,
+      { id: crypto.randomUUID(), kind, label, mode: kind === "tip" ? "percent" : "amount", value: 0 },
+    ]);
   };
 
-  // Recalculate total
-  const calculatedTotal =
-    currentTotals.subtotal + currentTotals.tax + currentTotals.tip;
-
-  const updateTotals = (updates: Partial<MealTotals>) => {
-    const newTotals = {
-      ...currentTotals,
-      subtotal, // Always use calculated subtotal
-      ...updates,
-    };
-    newTotals.total = newTotals.subtotal + newTotals.tax + newTotals.tip;
-    onTotalsChange?.(newTotals);
+  const updateCharge = (id: string, updates: Partial<Charge>) => {
+    onChargesChange(charges.map((c) => (c.id === id ? { ...c, ...updates } : c)));
   };
+
+  const removeCharge = (id: string) => {
+    onChargesChange(charges.filter((c) => c.id !== id));
+  };
+
+  const setTipPercent = (percent: number) => {
+    const tip = charges.find((c) => c.kind === "tip");
+    if (tip) {
+      updateCharge(tip.id, { mode: "percent", value: percent });
+    } else {
+      onChargesChange([
+        ...charges,
+        { id: crypto.randomUUID(), kind: "tip", label: "Tip", mode: "percent", value: percent },
+      ]);
+    }
+  };
+
+  // Totals-only invocation of the money engine: no people, so perPerson is
+  // empty but subtotal / resolved charges / grandTotal are exact.
+  const totals = calculateSplit(items, charges, []);
+  const mismatch =
+    scannedTotal !== null && Math.abs(totals.grandTotal - scannedTotal) > 0.01;
 
   return (
     <div className="space-y-6">
+      {mismatch && (
+        <div className="flex items-start bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+          <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 mr-2 mt-0.5 shrink-0" />
+          <p className="text-sm text-amber-800 dark:text-amber-200">
+            The items and charges below add up to{" "}
+            <strong>{formatCurrency(totals.grandTotal)}</strong>, but the receipt
+            total reads <strong>{formatCurrency(scannedTotal)}</strong>. Check the
+            detected prices and charges before splitting.
+          </p>
+        </div>
+      )}
+
+      {/* Items */}
       <div className="text-center">
         <Package className="w-12 h-12 mx-auto text-blue-600 dark:text-blue-400 mb-4" />
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
@@ -112,7 +138,6 @@ export function ExpenseItemsList({
                   placeholder="Item name"
                 />
                 <div className="flex items-center space-x-2">
-                  <DollarSign className="w-4 h-4 text-gray-400" />
                   <input
                     type="number"
                     step="0.01"
@@ -144,9 +169,8 @@ export function ExpenseItemsList({
                     {item.name}
                   </h4>
                   <div className="flex items-center mt-1">
-                    <DollarSign className="w-4 h-4 text-gray-400 mr-1" />
                     <span className="text-lg font-semibold text-green-600 dark:text-green-400">
-                      {item.price.toFixed(2)}
+                      {formatCurrency(item.price)}
                     </span>
                   </div>
                 </div>
@@ -190,7 +214,6 @@ export function ExpenseItemsList({
                 autoFocus
               />
               <div className="flex items-center space-x-2">
-                <DollarSign className="w-4 h-4 text-gray-400" />
                 <input
                   type="number"
                   step="0.01"
@@ -233,107 +256,104 @@ export function ExpenseItemsList({
         )}
       </div>
 
-      {/* Bill Summary with Tax & Tip */}
-      <div className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 rounded-xl p-6 border border-gray-200 dark:border-gray-600">
-        <div className="flex items-center mb-4">
-          <Receipt className="w-6 h-6 text-blue-600 dark:text-blue-400 mr-2" />
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Bill Summary
-          </h3>
-        </div>
-
-        <div className="space-y-4">
-          {/* Subtotal */}
-          <div className="flex items-center justify-between">
-            <span className="text-gray-700 dark:text-gray-300">
-              Subtotal ({items.length} item{items.length !== 1 ? "s" : ""})
-            </span>
-            <div className="flex items-center">
-              <DollarSign className="w-4 h-4 text-gray-400 mr-1" />
-              <span className="font-semibold text-gray-900 dark:text-white">
-                {subtotal.toFixed(2)}
-              </span>
-            </div>
-          </div>
-
-          {/* Tax */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <span className="text-gray-700 dark:text-gray-300 mr-3">Tax</span>
-              <div className="flex items-center space-x-2">
-                <DollarSign className="w-4 h-4 text-gray-400" />
-                <input
-                  type="number"
-                  step="0.01"
-                  value={currentTotals.tax.toFixed(2)}
-                  onChange={(e) =>
-                    updateTotals({ tax: parseFloat(e.target.value) || 0 })
-                  }
-                  className="w-20 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                />
-                <span className="text-gray-500 text-sm">
-                  ({((currentTotals.tax / subtotal) * 100).toFixed(1)}%)
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Tip */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <span className="text-gray-700 dark:text-gray-300 mr-3">Tip</span>
-              <div className="flex items-center space-x-2">
-                <DollarSign className="w-4 h-4 text-gray-400" />
-                <input
-                  type="number"
-                  step="0.01"
-                  value={currentTotals.tip.toFixed(2)}
-                  onChange={(e) =>
-                    updateTotals({ tip: parseFloat(e.target.value) || 0 })
-                  }
-                  className="w-20 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                />
-                <span className="text-gray-500 text-sm">
-                  ({((currentTotals.tip / subtotal) * 100).toFixed(1)}%)
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Quick tip buttons */}
-          <div className="flex items-center space-x-2">
-            <span className="text-sm text-gray-600 dark:text-gray-400">
-              Quick tip:
-            </span>
-            {[15, 18, 20, 22].map((percent) => (
-              <Button
-                key={percent}
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  updateTotals({ tip: subtotal * (percent / 100) })
-                }
-                className="text-xs px-2 py-1 h-7"
-              >
+      {/* Charges */}
+      <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <h4 className="font-medium text-gray-900 dark:text-white flex items-center">
+            <Receipt className="w-5 h-5 mr-2" />
+            Tax, Tip & Other Charges
+          </h4>
+          <div className="flex items-center gap-1">
+            <span className="text-sm text-gray-500 dark:text-gray-400 mr-1">Tip:</span>
+            {TIP_PRESETS.map((percent) => (
+              <Button key={percent} variant="outline" size="sm" onClick={() => setTipPercent(percent)}>
                 {percent}%
               </Button>
             ))}
           </div>
+        </div>
 
-          {/* Total */}
-          <div className="border-t border-gray-300 dark:border-gray-600 pt-4">
-            <div className="flex items-center justify-between">
-              <span className="text-xl font-semibold text-gray-900 dark:text-white">
-                Total
-              </span>
-              <div className="flex items-center">
-                <DollarSign className="w-6 h-6 text-green-600 dark:text-green-400 mr-1" />
-                <span className="text-3xl font-bold text-green-600 dark:text-green-400">
-                  {calculatedTotal.toFixed(2)}
-                </span>
-              </div>
+        {charges.length === 0 && (
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            No charges yet — add tax, tip, gratuity, or a discount below.
+          </p>
+        )}
+
+        {charges.map((charge) => (
+          <div key={charge.id} className="flex items-center gap-3">
+            <span className="w-24 text-sm font-medium text-gray-700 dark:text-gray-300">
+              {charge.label}
+            </span>
+            <div className="flex rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600">
+              <button
+                type="button"
+                onClick={() => updateCharge(charge.id, { mode: "amount" })}
+                className={`px-2 py-1 text-sm ${
+                  charge.mode === "amount"
+                    ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                    : "bg-white dark:bg-gray-700 text-gray-500"
+                }`}
+              >
+                $
+              </button>
+              <button
+                type="button"
+                onClick={() => updateCharge(charge.id, { mode: "percent" })}
+                className={`px-2 py-1 text-sm ${
+                  charge.mode === "percent"
+                    ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                    : "bg-white dark:bg-gray-700 text-gray-500"
+                }`}
+              >
+                %
+              </button>
             </div>
+            <input
+              type="number"
+              min="0"
+              step={charge.mode === "percent" ? "0.5" : "0.01"}
+              value={charge.value}
+              onChange={(event) =>
+                updateCharge(charge.id, { value: parseFloat(event.target.value) || 0 })
+              }
+              className="w-28 px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+            />
+            <span className="text-sm text-gray-500 dark:text-gray-400 flex-1">
+              {formatCurrency(
+                totals.charges.find((c) => c.chargeId === charge.id)?.amount ?? 0
+              )}
+            </span>
+            <Button variant="ghost" size="sm" onClick={() => removeCharge(charge.id)}>
+              <X className="w-4 h-4" />
+            </Button>
           </div>
+        ))}
+
+        <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+          {CHARGE_DEFS.map(({ kind, label }) => (
+            <Button key={kind} variant="outline" size="sm" onClick={() => addCharge(kind, label)}>
+              <Plus className="w-4 h-4 mr-1" />
+              {label}
+            </Button>
+          ))}
+        </div>
+      </div>
+
+      {/* Totals footer */}
+      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 space-y-1">
+        <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
+          <span>Subtotal ({items.length} items)</span>
+          <span>{formatCurrency(totals.subtotal)}</span>
+        </div>
+        {totals.charges.map((charge) => (
+          <div key={charge.chargeId} className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
+            <span>{charge.label}</span>
+            <span>{formatCurrency(charge.amount)}</span>
+          </div>
+        ))}
+        <div className="flex justify-between font-semibold text-gray-900 dark:text-white pt-1 border-t border-gray-200 dark:border-gray-700">
+          <span>Total</span>
+          <span>{formatCurrency(totals.grandTotal)}</span>
         </div>
       </div>
     </div>

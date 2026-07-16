@@ -10,7 +10,7 @@ import { ParticipantManager } from "@/components/ParticipantManager";
 import { ExpenseSummary } from "@/components/ExpenseSummary";
 import { Camera, Users, ListCheck, Calculator, Receipt } from "lucide-react";
 import Link from "next/link";
-import type { Person, ReceiptItem, Charge, MealTotals } from "@/types/meal";
+import type { Person, ReceiptItem, Charge } from "@/types/meal";
 import {
   scannedItemsToReceiptItems,
   scannedChargesToCharges,
@@ -29,9 +29,6 @@ export default function MealExpensePage() {
   const [scannedTotal, setScannedTotal] = useState<number | null>(null);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [startedFromScratch, setStartedFromScratch] = useState(false);
-  // Legacy tax/tip totals — removed in Task 5 with the ExpenseItemsList rework.
-  const [totals, setTotals] = useState<MealTotals | undefined>(undefined);
-
   const steps: {
     id: MealFlowStep;
     title: string;
@@ -218,8 +215,9 @@ export default function MealExpensePage() {
               <ExpenseItemsList
                 items={items}
                 onItemsChange={setItems}
-                totals={totals}
-                onTotalsChange={setTotals}
+                charges={charges}
+                onChargesChange={setCharges}
+                scannedTotal={scannedTotal}
               />
             )}
 
@@ -235,7 +233,6 @@ export default function MealExpensePage() {
               <ExpenseSummary
                 items={items}
                 participants={participants}
-                totals={totals}
               />
             )}
           </motion.div>
