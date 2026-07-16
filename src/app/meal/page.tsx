@@ -233,6 +233,7 @@ export default function MealExpensePage() {
               <ExpenseSummary
                 items={items}
                 participants={participants}
+                charges={charges}
               />
             )}
           </motion.div>

@@ -27,23 +27,3 @@ export interface Charge {
   // percent value (of the item subtotal) or dollars; discounts entered positive
   value: number
 }
-
-// ---------------------------------------------------------------------------
-// Legacy types — still referenced by components that are migrated in later
-// tasks. Deleted in Task 7. Do not use in new code.
-// ---------------------------------------------------------------------------
-
-export interface ExpenseItem {
-  id: string
-  name: string
-  price: number
-  assignedTo: string[]
-  category?: string
-}
-
-export interface MealTotals {
-  subtotal: number
-  tax: number
-  tip: number
-  total: number
-}

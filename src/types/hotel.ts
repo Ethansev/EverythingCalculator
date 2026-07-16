@@ -1,4 +1,18 @@
-import type { Expense } from './common'
+import type { Person, ReceiptItem } from './meal'
+
+interface Expense {
+  id: string
+  title: string
+  type: 'meal' | 'hotel' | 'general'
+  subtotal: number
+  tax: number
+  tip: number
+  total: number
+  items: ReceiptItem[]
+  participants: Person[]
+  createdAt: Date
+  updatedAt: Date
+}
 
 export interface HotelNight {
   date: string
