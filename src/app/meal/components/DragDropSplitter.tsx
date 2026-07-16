@@ -12,12 +12,129 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { UserPlus, Users, DollarSign, Sparkles } from "lucide-react";
-import type { Person, ExpenseItem } from "@/types/meal";
+import type { Person, ReceiptItem } from "@/types/meal";
+import { allocateCents } from "@/utils/meal/splitCalculations";
 
 interface DragDropSplitterProps {
-  items: ExpenseItem[];
+  items: ReceiptItem[];
   participants: Person[];
-  onItemsChange: (items: ExpenseItem[]) => void;
+  onItemsChange: (items: ReceiptItem[]) => void;
+}
+
+function itemShares(item: ReceiptItem): Map<string, number> {
+  const shares = new Map<string, number>();
+  if (item.assignedTo.length === 0) return shares;
+  const exact = item.exactSplits;
+  const priceCents = Math.round(item.price * 100);
+  const exactValid =
+    exact !== undefined &&
+    Object.keys(exact).length === item.assignedTo.length &&
+    item.assignedTo.every((id) => typeof exact[id] === "number") &&
+    item.assignedTo.reduce((sum, id) => sum + Math.round(exact[id] * 100), 0) ===
+      priceCents;
+  if (exactValid) {
+    for (const id of item.assignedTo) shares.set(id, exact[id]);
+  } else {
+    const cents = allocateCents(priceCents, item.assignedTo.map(() => 1));
+    item.assignedTo.forEach((id, index) => shares.set(id, cents[index] / 100));
+  }
+  return shares;
+}
+
+function ExactSplitEditor({
+  item,
+  assignedParticipants,
+  onSetExactSplits,
+  onClose,
+}: {
+  item: ReceiptItem;
+  assignedParticipants: Person[];
+  onSetExactSplits: (splits: Record<string, number> | undefined) => void;
+  onClose: () => void;
+}) {
+  const shares = itemShares(item);
+  const [drafts, setDrafts] = useState<Record<string, string>>(() => {
+    const initial: Record<string, string> = {};
+    for (const person of assignedParticipants) {
+      initial[person.id] = (shares.get(person.id) ?? 0).toFixed(2);
+    }
+    return initial;
+  });
+
+  const parsedCents = assignedParticipants.map((person) => {
+    const value = parseFloat(drafts[person.id]);
+    return Number.isFinite(value) && value >= 0 ? Math.round(value * 100) : null;
+  });
+  const allValid = parsedCents.every((c) => c !== null);
+  const sumCents = parsedCents.reduce<number>((sum, c) => sum + (c ?? 0), 0);
+  const priceCents = Math.round(item.price * 100);
+  const remainingCents = priceCents - sumCents;
+  const canApply = allValid && remainingCents === 0;
+
+  const apply = () => {
+    const splits: Record<string, number> = {};
+    assignedParticipants.forEach((person, index) => {
+      const cents = parsedCents[index];
+      if (cents !== null) splits[person.id] = cents / 100;
+    });
+    onSetExactSplits(splits);
+    onClose();
+  };
+
+  return (
+    <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg space-y-2">
+      {assignedParticipants.map((person) => (
+        <div key={person.id} className="flex items-center gap-2">
+          <span
+            className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs shrink-0"
+            style={{ backgroundColor: person.color }}
+          >
+            {person.name.charAt(0).toUpperCase()}
+          </span>
+          <span className="text-sm text-gray-700 dark:text-gray-300 flex-1">
+            {person.name}
+          </span>
+          <span className="text-gray-500">$</span>
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            value={drafts[person.id]}
+            onChange={(event) =>
+              setDrafts({ ...drafts, [person.id]: event.target.value })
+            }
+            className="w-24 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white"
+          />
+        </div>
+      ))}
+      <div
+        className={`text-sm text-right ${
+          remainingCents === 0
+            ? "text-green-600 dark:text-green-400"
+            : "text-amber-600 dark:text-amber-400"
+        }`}
+      >
+        {remainingCents === 0
+          ? "Adds up ✓"
+          : `Remaining: $${(remainingCents / 100).toFixed(2)}`}
+      </div>
+      <div className="flex justify-end gap-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => {
+            onSetExactSplits(undefined);
+            onClose();
+          }}
+        >
+          Reset to equal
+        </Button>
+        <Button size="sm" onClick={apply} disabled={!canApply}>
+          Apply
+        </Button>
+      </div>
+    </div>
+  );
 }
 
 export function DragDropSplitter({
@@ -27,33 +144,32 @@ export function DragDropSplitter({
 }: DragDropSplitterProps) {
   const [draggedPerson, setDraggedPerson] = useState<Person | null>(null);
 
+  const toggleAssignment = (itemId: string, personId: string) => {
+    onItemsChange(
+      items.map((item) => {
+        if (item.id !== itemId) return item;
+        const isAssigned = item.assignedTo.includes(personId);
+        return {
+          ...item,
+          assignedTo: isAssigned
+            ? item.assignedTo.filter((id) => id !== personId)
+            : [...item.assignedTo, personId],
+          exactSplits: undefined,
+        };
+      })
+    );
+  };
+
   const handleDragStart = (event: DragStartEvent) => {
     const person = participants.find((p) => p.id === event.active.id);
-    setDraggedPerson(person || null);
+    setDraggedPerson(person ?? null);
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     setDraggedPerson(null);
-
-    if (over && active.id !== over.id) {
-      const personId = active.id as string;
-      const itemId = over.id as string;
-
-      onItemsChange(
-        items.map((item) => {
-          if (item.id === itemId) {
-            const isAlreadyAssigned = item.assignedTo.includes(personId);
-            return {
-              ...item,
-              assignedTo: isAlreadyAssigned
-                ? item.assignedTo.filter((id) => id !== personId)
-                : [...item.assignedTo, personId],
-            };
-          }
-          return item;
-        })
-      );
+    if (over && typeof active.id === "string" && typeof over.id === "string") {
+      toggleAssignment(over.id, active.id);
     }
   };
 
@@ -62,6 +178,7 @@ export function DragDropSplitter({
       items.map((item) => ({
         ...item,
         assignedTo: participants.map((p) => p.id),
+        exactSplits: undefined,
       }))
     );
   };
@@ -71,11 +188,10 @@ export function DragDropSplitter({
       items.map((item) => ({
         ...item,
         assignedTo: [],
+        exactSplits: undefined,
       }))
     );
   };
-
-  const getPersonById = (id: string) => participants.find((p) => p.id === id);
 
   return (
     <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
@@ -86,7 +202,8 @@ export function DragDropSplitter({
             Assign Items to People
           </h3>
           <p className="text-gray-600 dark:text-gray-300">
-            Drag people onto items they consumed, or use quick actions below
+            Tap chips to toggle assignment, drag people onto items, or use quick
+            actions below
           </p>
         </div>
 
@@ -124,9 +241,18 @@ export function DragDropSplitter({
             <ItemCard
               key={item.id}
               item={item}
-              assignedParticipants={item.assignedTo
-                .map((id) => getPersonById(id)!)
-                .filter(Boolean)}
+              participants={participants}
+              assignedParticipants={participants.filter((p) =>
+                item.assignedTo.includes(p.id)
+              )}
+              onToggle={(personId) => toggleAssignment(item.id, personId)}
+              onSetExactSplits={(splits) =>
+                onItemsChange(
+                  items.map((i) =>
+                    i.id === item.id ? { ...i, exactSplits: splits } : i
+                  )
+                )
+              }
             />
           ))}
         </div>
@@ -207,14 +333,22 @@ function ParticipantCard({ person }: { person: Person }) {
 
 function ItemCard({
   item,
+  participants,
   assignedParticipants,
+  onToggle,
+  onSetExactSplits,
 }: {
-  item: ExpenseItem;
+  item: ReceiptItem;
+  participants: Person[];
   assignedParticipants: Person[];
+  onToggle: (personId: string) => void;
+  onSetExactSplits: (splits: Record<string, number> | undefined) => void;
 }) {
   const { isOver, setNodeRef } = useDroppable({
     id: item.id,
   });
+  const [isEditingAmounts, setIsEditingAmounts] = useState(false);
+  const shares = itemShares(item);
 
   return (
     <div
@@ -239,46 +373,57 @@ function ItemCard({
             </span>
           </div>
         </div>
-
-        {assignedParticipants.length > 0 && (
-          <div className="text-right">
-            <div className="text-sm text-gray-600 dark:text-gray-300">
-              Split {assignedParticipants.length} ways
-            </div>
-            <div className="font-semibold text-blue-600 dark:text-blue-400">
-              ${(item.price / assignedParticipants.length).toFixed(2)} each
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* Assigned Participants */}
-      {assignedParticipants.length > 0 ? (
-        <div className="flex flex-wrap gap-2">
-          {assignedParticipants.map((person) => (
-            <div
+      {/* Tap-to-toggle chips for all participants */}
+      <div className="flex flex-wrap gap-2">
+        {participants.map((person) => {
+          const isAssigned = item.assignedTo.includes(person.id);
+          const share = shares.get(person.id);
+          return (
+            <button
               key={person.id}
-              className="flex items-center px-2 py-1 rounded-full text-xs font-medium text-white"
-              style={{ backgroundColor: person.color }}
+              type="button"
+              onClick={() => onToggle(person.id)}
+              className={`flex items-center px-2 py-1 rounded-full text-xs font-medium transition-all border ${
+                isAssigned
+                  ? "text-white border-transparent"
+                  : "text-gray-500 dark:text-gray-400 border-gray-300 dark:border-gray-600 bg-transparent"
+              }`}
+              style={isAssigned ? { backgroundColor: person.color } : undefined}
             >
-              <span className="w-4 h-4 rounded-full bg-white/20 flex items-center justify-center mr-1 text-xs">
-                {person.name.charAt(0).toUpperCase()}
-              </span>
               {person.name}
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div
-          className={`text-center text-sm transition-colors ${
-            isOver
-              ? "text-blue-600 dark:text-blue-400 font-medium"
-              : "text-gray-400 dark:text-gray-500"
-          }`}
-        >
-          {isOver
-            ? "Drop here to assign this item"
-            : "Drag people here to assign this item"}
+              {isAssigned && share !== undefined && (
+                <span className="ml-1 opacity-90">${share.toFixed(2)}</span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Customize amounts expander */}
+      {assignedParticipants.length >= 2 && (
+        <div className="mt-3">
+          <button
+            type="button"
+            onClick={() => setIsEditingAmounts((open) => !open)}
+            className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+          >
+            {item.exactSplits ? "Edit custom amounts" : "Customize amounts"}
+            {item.exactSplits && (
+              <span className="ml-2 text-xs bg-blue-100 dark:bg-blue-900/30 px-1.5 py-0.5 rounded">
+                custom
+              </span>
+            )}
+          </button>
+          {isEditingAmounts && (
+            <ExactSplitEditor
+              item={item}
+              assignedParticipants={assignedParticipants}
+              onSetExactSplits={onSetExactSplits}
+              onClose={() => setIsEditingAmounts(false)}
+            />
+          )}
         </div>
       )}
     </div>
