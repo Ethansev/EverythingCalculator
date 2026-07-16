@@ -10,23 +10,39 @@ import { ParticipantManager } from "@/components/ParticipantManager";
 import { ExpenseSummary } from "@/components/ExpenseSummary";
 import { Camera, Users, ListCheck, Calculator, Receipt } from "lucide-react";
 import Link from "next/link";
-import type { Person, ExpenseItem, MealTotals } from "@/types/meal";
+import type { Person, ReceiptItem, Charge, MealTotals } from "@/types/meal";
+import {
+  scannedItemsToReceiptItems,
+  scannedChargesToCharges,
+} from "@/utils/meal/receiptScan";
+import type { ScannedReceipt } from "@/utils/meal/receiptScan";
+import type { LucideIcon } from "lucide-react";
 
 type MealFlowStep = "upload" | "participants" | "items" | "split" | "summary";
 
 export default function MealExpensePage() {
   const [currentStep, setCurrentStep] = useState<MealFlowStep>("upload");
+  const [maxStepReached, setMaxStepReached] = useState(0);
   const [participants, setParticipants] = useState<Person[]>([]);
-  const [items, setItems] = useState<ExpenseItem[]>([]);
+  const [items, setItems] = useState<ReceiptItem[]>([]);
+  const [charges, setCharges] = useState<Charge[]>([]);
+  const [scannedTotal, setScannedTotal] = useState<number | null>(null);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [startedFromScratch, setStartedFromScratch] = useState(false);
+  // Legacy tax/tip totals — removed in Task 5 with the ExpenseItemsList rework.
   const [totals, setTotals] = useState<MealTotals | undefined>(undefined);
 
-  const steps = [
+  const steps: {
+    id: MealFlowStep;
+    title: string;
+    icon: LucideIcon;
+    description: string;
+  }[] = [
     {
       id: "upload",
-      title: "Upload Receipt",
+      title: "Get Started",
       icon: Camera,
-      description: "Take a photo or upload your receipt",
+      description: "Scan a receipt or start from scratch",
     },
     {
       id: "participants",
@@ -56,24 +72,31 @@ export default function MealExpensePage() {
 
   const currentStepIndex = steps.findIndex((step) => step.id === currentStep);
 
-  const handleNext = () => {
-    const nextIndex = currentStepIndex + 1;
-    if (nextIndex < steps.length) {
-      setCurrentStep(steps[nextIndex].id as MealFlowStep);
-    }
+  const goToStep = (index: number) => {
+    if (index < 0 || index >= steps.length) return;
+    setCurrentStep(steps[index].id);
+    setMaxStepReached((prev) => Math.max(prev, index));
   };
 
-  const handlePrevious = () => {
-    const prevIndex = currentStepIndex - 1;
-    if (prevIndex >= 0) {
-      setCurrentStep(steps[prevIndex].id as MealFlowStep);
-    }
+  const handleNext = () => goToStep(currentStepIndex + 1);
+  const handlePrevious = () => goToStep(currentStepIndex - 1);
+
+  const handleScanComplete = (scan: ScannedReceipt) => {
+    setItems(scannedItemsToReceiptItems(scan.items, () => crypto.randomUUID()));
+    setCharges(scannedChargesToCharges(scan, () => crypto.randomUUID()));
+    setScannedTotal(scan.total);
+  };
+
+  const handleStartFromScratch = () => {
+    setStartedFromScratch(true);
+    setUploadedImage(null);
+    goToStep(1);
   };
 
   const canProceed = () => {
     switch (currentStep) {
       case "upload":
-        return uploadedImage !== null;
+        return uploadedImage !== null || startedFromScratch;
       case "participants":
         return participants.length >= 2;
       case "items":
@@ -117,19 +140,22 @@ export default function MealExpensePage() {
                 return (
                   <div key={step.id} className="flex items-center">
                     <div className="flex flex-col items-center">
-                      <motion.div
+                      <motion.button
+                        type="button"
+                        onClick={() => {
+                          if (index <= maxStepReached) goToStep(index);
+                        }}
+                        disabled={index > maxStepReached}
                         className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${
-                          isActive
-                            ? "bg-green-600 text-white"
-                            : isCompleted
+                          isActive || isCompleted
                             ? "bg-green-600 text-white"
                             : "bg-gray-200 dark:bg-gray-700 text-gray-500"
-                        }`}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
+                        } ${index <= maxStepReached ? "cursor-pointer" : "cursor-default"}`}
+                        whileHover={{ scale: index <= maxStepReached ? 1.05 : 1 }}
+                        whileTap={{ scale: index <= maxStepReached ? 0.95 : 1 }}
                       >
                         <StepIcon className="w-6 h-6" />
-                      </motion.div>
+                      </motion.button>
                       <span
                         className={`text-xs mt-2 font-medium ${
                           isActive ? "text-green-600" : "text-gray-500"
@@ -174,9 +200,10 @@ export default function MealExpensePage() {
           >
             {currentStep === "upload" && (
               <ImageUpload
-                onImageUpload={setUploadedImage}
-                onItemsDetected={setItems}
                 uploadedImage={uploadedImage}
+                onImageUpload={setUploadedImage}
+                onScanComplete={handleScanComplete}
+                onStartFromScratch={handleStartFromScratch}
               />
             )}
 
@@ -232,7 +259,7 @@ export default function MealExpensePage() {
                 Next
               </Button>
             ) : (
-              <Button>Complete</Button>
+              <div />
             )}
           </div>
         </div>
