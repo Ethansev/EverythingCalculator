@@ -26,4 +26,6 @@ export interface Charge {
   mode: ChargeMode
   // percent value (of the item subtotal) or dollars; discounts entered positive
   value: number
+  // person ids this charge applies to; absent = everyone
+  appliesTo?: string[]
 }

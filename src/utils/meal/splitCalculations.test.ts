@@ -222,4 +222,74 @@ describe("calculateSplit", () => {
     const sumOfSubtotals = result.perPerson.reduce((s, p) => s + p.subtotal, 0);
     expect(Math.round(sumOfSubtotals * 100)).toBe(Math.round(result.subtotal * 100));
   });
+
+  it("sends a targeted amount charge entirely to the targeted person", () => {
+    const items = [
+      item({ id: "i1", price: 30, assignedTo: ["a"] }),
+      item({ id: "i2", price: 10, assignedTo: ["b"] }),
+    ];
+    const charges: Charge[] = [
+      { id: "d1", kind: "discount", label: "Birthday", mode: "amount", value: 6, appliesTo: ["b"] },
+    ];
+    const result = calculateSplit(items, charges, people);
+    expect(result.perPerson[0].chargeShares[0].amount).toBe(0);
+    expect(result.perPerson[1].chargeShares[0].amount).toBe(-6);
+    expect(result.perPerson[2].chargeShares[0].amount).toBe(0);
+    expect(result.grandTotal).toBe(34);
+  });
+
+  it("computes targeted percent charges on the group's subtotal only", () => {
+    const items = [
+      item({ id: "i1", price: 30, assignedTo: ["a"] }),
+      item({ id: "i2", price: 10, assignedTo: ["b"] }),
+    ];
+    const charges: Charge[] = [
+      { id: "t1", kind: "tip", label: "Tip", mode: "percent", value: 10, appliesTo: ["b"] },
+    ];
+    const result = calculateSplit(items, charges, people);
+    expect(result.charges[0].amount).toBe(1);
+    expect(result.perPerson[1].chargeShares[0].amount).toBe(1);
+    expect(result.perPerson[0].chargeShares[0].amount).toBe(0);
+    expect(result.grandTotal).toBe(41);
+  });
+
+  it("splits a targeted charge evenly within the group when the group ordered nothing", () => {
+    const items = [item({ id: "i1", price: 20, assignedTo: ["a"] })];
+    const charges: Charge[] = [
+      { id: "g1", kind: "gratuity", label: "Gratuity", mode: "amount", value: 6, appliesTo: ["b", "c"] },
+    ];
+    const result = calculateSplit(items, charges, people);
+    expect(result.perPerson[0].chargeShares[0].amount).toBe(0);
+    expect(result.perPerson[1].chargeShares[0].amount).toBe(3);
+    expect(result.perPerson[2].chargeShares[0].amount).toBe(3);
+  });
+
+  it("falls back to everyone when appliesTo contains only unknown ids", () => {
+    const items = [
+      item({ id: "i1", price: 30, assignedTo: ["a"] }),
+      item({ id: "i2", price: 10, assignedTo: ["b"] }),
+    ];
+    const charges: Charge[] = [
+      { id: "t1", kind: "tax", label: "Tax", mode: "amount", value: 4, appliesTo: ["ghost"] },
+    ];
+    const result = calculateSplit(items, charges, people);
+    expect(result.perPerson[0].chargeShares[0].amount).toBe(3);
+    expect(result.perPerson[1].chargeShares[0].amount).toBe(1);
+  });
+
+  it("keeps the sum invariant with mixed targeted and untargeted charges", () => {
+    const items = [
+      item({ id: "i1", price: 12.5, assignedTo: ["a"] }),
+      item({ id: "i2", price: 18.95, assignedTo: ["a", "b"] }),
+      item({ id: "i3", price: 16.75, assignedTo: ["b", "c"] }),
+    ];
+    const charges: Charge[] = [
+      { id: "c1", kind: "tax", label: "Tax", mode: "amount", value: 4.02 },
+      { id: "c2", kind: "tip", label: "Tip", mode: "percent", value: 18, appliesTo: ["a", "c"] },
+      { id: "c3", kind: "discount", label: "Birthday", mode: "amount", value: 5.55, appliesTo: ["b"] },
+    ];
+    const result = calculateSplit(items, charges, people);
+    const sumOfTotals = result.perPerson.reduce((s, p) => s + p.total, 0);
+    expect(Math.round(sumOfTotals * 100)).toBe(Math.round(result.grandTotal * 100));
+  });
 });

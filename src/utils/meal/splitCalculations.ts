@@ -117,11 +117,20 @@ export function calculateSplit(
 
   const resolvedCharges: ChargeShare[] = []
   let chargesCents = 0
-  const weights = personIds.map((id) => subtotalCentsByPerson.get(id) ?? 0)
   for (const charge of charges) {
+    const targetIds = (charge.appliesTo ?? []).filter((id) => known.has(id))
+    const isTargeted = targetIds.length > 0
+    // Fall back to everyone when untargeted or every target was removed —
+    // a charge must never vanish from the totals.
+    const eligibleIds = isTargeted ? targetIds : personIds
+    const groupSubtotalCents = eligibleIds.reduce(
+      (sum, id) => sum + (subtotalCentsByPerson.get(id) ?? 0),
+      0
+    )
+    const percentBaseCents = isTargeted ? groupSubtotalCents : subtotalCents
     const magnitudeCents =
       charge.mode === 'percent'
-        ? Math.round((subtotalCents * charge.value) / 100)
+        ? Math.round((percentBaseCents * charge.value) / 100)
         : toCents(charge.value)
     const signedCents = charge.kind === 'discount' ? -magnitudeCents : magnitudeCents
     chargesCents += signedCents
@@ -131,13 +140,17 @@ export function calculateSplit(
       label: charge.label,
       amount: toDollars(signedCents),
     })
-    const allocation = allocateCents(signedCents, weights)
-    personIds.forEach((personId, index) => {
+    const eligibleWeights = eligibleIds.map(
+      (id) => subtotalCentsByPerson.get(id) ?? 0
+    )
+    const allocation = allocateCents(signedCents, eligibleWeights)
+    const centsByPerson = new Map(eligibleIds.map((id, index) => [id, allocation[index]]))
+    personIds.forEach((personId) => {
       chargeSharesByPerson.get(personId)?.push({
         chargeId: charge.id,
         kind: charge.kind,
         label: charge.label,
-        amount: toDollars(allocation[index]),
+        amount: toDollars(centsByPerson.get(personId) ?? 0),
       })
     })
   }
