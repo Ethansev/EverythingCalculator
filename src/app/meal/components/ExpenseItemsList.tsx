@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Plus, Edit3, Trash2, Package, Receipt, AlertTriangle, X, Users } from "lucide-react";
+import { Plus, Edit3, Trash2, Receipt, AlertTriangle, X, Users } from "lucide-react";
 import type { Charge, ChargeKind, Person, ReceiptItem } from "@/types/meal";
 import { calculateSplit } from "@/utils/meal/splitCalculations";
 
@@ -137,9 +137,9 @@ export function ExpenseItemsList({
   return (
     <div className="space-y-6">
       {mismatch && (
-        <div className="flex items-start bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
-          <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 mr-2 mt-0.5 shrink-0" />
-          <p className="text-sm text-amber-800 dark:text-amber-200">
+        <div className="flex items-start border-[1.5px] border-dashed border-amber-600 bg-amber-50 rounded p-3">
+          <AlertTriangle className="w-5 h-5 text-amber-600 mr-2 mt-0.5 shrink-0" />
+          <p className="text-xs uppercase tracking-wide text-amber-800">
             The items and charges below add up to{" "}
             <strong>{formatCurrency(totals.grandTotal)}</strong>, but the receipt
             total reads <strong>{formatCurrency(scannedTotal)}</strong>. Check the
@@ -150,13 +150,13 @@ export function ExpenseItemsList({
 
       {/* Items */}
       <div className="text-center">
-        <Package className="w-12 h-12 mx-auto text-blue-600 dark:text-blue-400 mb-4" />
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+        <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-stone-800 text-center">
           Review Items
         </h3>
-        <p className="text-gray-600 dark:text-gray-300">
+        <p className="text-xs text-stone-500 text-center">
           Add, edit, or remove items and charges before splitting
         </p>
+        <div className="receipt-dashed mt-4" />
       </div>
 
       <div className="space-y-3">
@@ -165,8 +165,8 @@ export function ExpenseItemsList({
             key={item.id}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-            className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4"
+            transition={{ delay: index * 0.03 }}
+            className="border-b border-dashed border-stone-300 py-2.5 px-0 rounded-none bg-transparent"
           >
             {editingItem === item.id ? (
               <div className="space-y-3">
@@ -176,7 +176,7 @@ export function ExpenseItemsList({
                   onChange={(e) =>
                     updateItem(item.id, { name: e.target.value })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                  className="w-full px-3 py-2 border border-stone-300 bg-white text-stone-800 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Item name"
                 />
                 <div className="flex items-center space-x-2">
@@ -190,7 +190,7 @@ export function ExpenseItemsList({
                         price: Math.max(0, parseFloat(e.target.value) || 0),
                       })
                     }
-                    className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                    className="flex-1 px-3 py-2 border border-stone-300 bg-white text-stone-800 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="0.00"
                   />
                   <Button size="sm" onClick={() => setEditingItem(null)} type="button">
@@ -207,21 +207,18 @@ export function ExpenseItemsList({
               </div>
             ) : (
               <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <h4 className="font-medium text-gray-900 dark:text-white">
-                    {item.name}
-                  </h4>
-                  <div className="flex items-center mt-1">
-                    <span className="text-lg font-semibold text-green-600 dark:text-green-400">
-                      {formatCurrency(item.price)}
-                    </span>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2">
+                <h4 className="uppercase text-sm font-bold text-stone-800 flex-1">
+                  {item.name}
+                </h4>
+                <span className="text-sm font-bold text-stone-800 mr-2">
+                  {formatCurrency(item.price)}
+                </span>
+                <div className="flex items-center space-x-1">
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => setEditingItem(item.id)}
+                    className="text-stone-400 hover:text-stone-700 h-7 w-7 p-0"
                   >
                     <Edit3 className="w-4 h-4" />
                   </Button>
@@ -229,6 +226,7 @@ export function ExpenseItemsList({
                     variant="ghost"
                     size="sm"
                     onClick={() => deleteItem(item.id)}
+                    className="text-stone-400 hover:text-stone-700 h-7 w-7 p-0"
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
@@ -243,7 +241,7 @@ export function ExpenseItemsList({
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4"
+            className="bg-blue-50 border border-blue-200 rounded-lg p-4"
           >
             <div className="space-y-3">
               <input
@@ -252,7 +250,7 @@ export function ExpenseItemsList({
                 onChange={(e) =>
                   setNewItem({ ...newItem, name: e.target.value })
                 }
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                className="w-full px-3 py-2 border border-stone-300 bg-white text-stone-800 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="Item name"
                 autoFocus
               />
@@ -264,7 +262,7 @@ export function ExpenseItemsList({
                   onChange={(e) =>
                     setNewItem({ ...newItem, price: e.target.value })
                   }
-                  className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                  className="flex-1 px-3 py-2 border border-stone-300 bg-white text-stone-800 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="0.00"
                 />
                 <Button
@@ -291,7 +289,7 @@ export function ExpenseItemsList({
           <Button
             variant="outline"
             onClick={() => setIsAddingNew(true)}
-            className="w-full border-dashed border-2 h-16 hover:border-blue-500 dark:hover:border-blue-400"
+            className="w-full border-dashed border-2 border-stone-300 text-stone-500 hover:border-green-600 hover:text-green-700 h-12"
           >
             <Plus className="w-5 h-5 mr-2" />
             Add Custom Item
@@ -300,16 +298,16 @@ export function ExpenseItemsList({
       </div>
 
       {/* Charges */}
-      <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-6 space-y-4">
+      <div className="receipt-dashed pt-4 space-y-3">
         <div className="flex items-center justify-between">
-          <h4 className="font-medium text-gray-900 dark:text-white flex items-center">
-            <Receipt className="w-5 h-5 mr-2" />
+          <h4 className="text-xs font-bold uppercase tracking-[0.2em] text-stone-600 flex items-center">
+            <Receipt className="w-4 h-4 mr-2" />
             Tax, Tip & Other Charges
           </h4>
           <div className="flex items-center gap-1">
-            <span className="text-sm text-gray-500 dark:text-gray-400 mr-1">Tip:</span>
+            <span className="text-sm text-stone-500 mr-1">Tip:</span>
             {TIP_PRESETS.map((percent) => (
-              <Button key={percent} variant="outline" size="sm" onClick={() => setTipPercent(percent)}>
+              <Button key={percent} variant="outline" size="sm" onClick={() => setTipPercent(percent)} className="border-stone-300 text-stone-600 hover:bg-stone-100 h-7 px-2 text-xs">
                 {percent}%
               </Button>
             ))}
@@ -317,7 +315,7 @@ export function ExpenseItemsList({
         </div>
 
         {charges.length === 0 && (
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+          <p className="text-sm text-stone-500">
             No charges yet — add tax, tip, gratuity, or a discount below.
           </p>
         )}
@@ -325,17 +323,17 @@ export function ExpenseItemsList({
         {charges.map((charge) => (
           <div key={charge.id}>
             <div className="flex items-center gap-3">
-              <span className="w-24 text-sm font-medium text-gray-700 dark:text-gray-300">
+              <span className="w-24 uppercase text-xs font-bold text-stone-700">
                 {charge.label}
               </span>
-              <div className="flex rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600">
+              <div className="flex rounded-lg overflow-hidden border border-stone-300">
                 <button
                   type="button"
                   onClick={() => updateCharge(charge.id, { mode: "amount" })}
                   className={`px-2 py-1 text-sm ${
                     charge.mode === "amount"
-                      ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                      : "bg-white dark:bg-gray-700 text-gray-500"
+                      ? "bg-green-100 text-green-800"
+                      : "bg-white text-stone-400"
                   }`}
                 >
                   $
@@ -345,8 +343,8 @@ export function ExpenseItemsList({
                   onClick={() => updateCharge(charge.id, { mode: "percent" })}
                   className={`px-2 py-1 text-sm ${
                     charge.mode === "percent"
-                      ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                      : "bg-white dark:bg-gray-700 text-gray-500"
+                      ? "bg-green-100 text-green-800"
+                      : "bg-white text-stone-400"
                   }`}
                 >
                   %
@@ -360,7 +358,7 @@ export function ExpenseItemsList({
                 onChange={(event) =>
                   updateCharge(charge.id, { value: parseFloat(event.target.value) || 0 })
                 }
-                className="w-28 px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                className="w-28 px-3 py-1 border border-stone-300 bg-white text-stone-800 rounded text-sm"
               />
               <button
                 type="button"
@@ -369,14 +367,14 @@ export function ExpenseItemsList({
                 }
                 className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-xs transition-colors ${
                   targetedIds(charge).length > 0
-                    ? "bg-blue-50 border border-blue-500 text-blue-700 font-semibold"
-                    : "bg-gray-100 border border-dashed border-gray-400 text-gray-500"
+                    ? "bg-stone-800 text-amber-50 border border-stone-800"
+                    : "bg-transparent border border-dashed border-stone-400 text-stone-500"
                 }`}
               >
                 <Users className="w-3 h-3" />
                 {targetLabel(charge)}
               </button>
-              <span className="text-sm text-gray-500 dark:text-gray-400 flex-1">
+              <span className="text-sm text-stone-500 flex-1">
                 {formatCurrency(
                   totals.charges.find((c) => c.chargeId === charge.id)?.amount ?? 0
                 )}
@@ -387,7 +385,7 @@ export function ExpenseItemsList({
             </div>
             {editingWhoFor === charge.id && (
               <div className="flex flex-wrap items-center gap-2 mt-2 ml-2">
-                <span className="text-[10px] uppercase tracking-wider text-gray-400">
+                <span className="text-[10px] uppercase tracking-wider text-stone-400">
                   Who pays:
                 </span>
                 {participants.map((person) => {
@@ -400,7 +398,7 @@ export function ExpenseItemsList({
                       className={`px-3 py-1 rounded-full text-xs font-medium border transition-all ${
                         selected
                           ? "text-white border-transparent"
-                          : "text-gray-500 border-gray-300 bg-transparent"
+                          : "text-stone-500 border-stone-300 bg-transparent"
                       }`}
                       style={selected ? { backgroundColor: person.color } : undefined}
                     >
@@ -409,7 +407,7 @@ export function ExpenseItemsList({
                     </button>
                   );
                 })}
-                <span className="text-[10px] text-gray-400">
+                <span className="text-[10px] text-stone-400">
                   none selected = everyone
                 </span>
               </div>
@@ -417,9 +415,9 @@ export function ExpenseItemsList({
           </div>
         ))}
 
-        <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+        <div className="flex flex-wrap gap-2 pt-2 border-t-0">
           {CHARGE_DEFS.map(({ kind, label }) => (
-            <Button key={kind} variant="outline" size="sm" onClick={() => addCharge(kind, label)}>
+            <Button key={kind} variant="outline" size="sm" onClick={() => addCharge(kind, label)} className="border-stone-300 text-stone-600 hover:bg-stone-100">
               <Plus className="w-4 h-4 mr-1" />
               {label}
             </Button>
@@ -428,19 +426,22 @@ export function ExpenseItemsList({
       </div>
 
       {/* Totals footer */}
-      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 space-y-1">
-        <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
-          <span>Subtotal ({items.length} {items.length === 1 ? "item" : "items"})</span>
+      <div className="receipt-dashed pt-3 space-y-1 text-sm">
+        <div className="text-center text-stone-400 text-xs tracking-[0.5em]">✂ · · · · · · · · ·</div>
+        <div className="flex justify-between text-stone-600">
+          <span className="uppercase text-xs tracking-wider">
+            Subtotal ({items.length} {items.length === 1 ? "item" : "items"})
+          </span>
           <span>{formatCurrency(totals.subtotal)}</span>
         </div>
         {totals.charges.map((charge) => (
-          <div key={charge.chargeId} className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
-            <span>{charge.label}</span>
+          <div key={charge.chargeId} className="flex justify-between text-stone-600">
+            <span className="uppercase text-xs tracking-wider">{charge.label}</span>
             <span>{formatCurrency(charge.amount)}</span>
           </div>
         ))}
-        <div className="flex justify-between font-semibold text-gray-900 dark:text-white pt-1 border-t border-gray-200 dark:border-gray-700">
-          <span>Total</span>
+        <div className="flex justify-between font-bold text-stone-900 text-base pt-1 border-t-2 border-stone-800">
+          <span className="uppercase tracking-wider">Total</span>
           <span>{formatCurrency(totals.grandTotal)}</span>
         </div>
       </div>
