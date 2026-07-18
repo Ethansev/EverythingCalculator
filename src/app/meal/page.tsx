@@ -99,8 +99,10 @@ export default function MealExpensePage() {
       prev.map((charge) => {
         if (!charge.appliesTo) return charge;
         const kept = charge.appliesTo.filter((id) => validIds.has(id));
-        if (kept.length === charge.appliesTo.length) return charge;
-        return { ...charge, appliesTo: kept.length > 0 ? kept : undefined };
+        const normalized =
+          kept.length === 0 || kept.length === next.length ? undefined : kept;
+        if (charge.appliesTo.length === kept.length && normalized !== undefined) return charge;
+        return { ...charge, appliesTo: normalized };
       })
     );
     setParticipants(next);

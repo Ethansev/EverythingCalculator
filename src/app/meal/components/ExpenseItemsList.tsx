@@ -128,9 +128,10 @@ export function ExpenseItemsList({
     );
   };
 
-  // Totals-only invocation of the money engine: no people, so perPerson is
-  // empty but subtotal / resolved charges / grandTotal are exact.
-  const totals = calculateSplit(items, charges, []);
+  // Totals use the current participants so targeted percent charges resolve
+  // exactly as the engine will charge them; before items are assigned a
+  // targeted percent charge shows $0.00 and becomes final once splitting happens.
+  const totals = calculateSplit(items, charges, participants);
   const mismatch =
     scannedTotal !== null && Math.abs(totals.grandTotal - scannedTotal) > 0.01;
 
@@ -366,7 +367,7 @@ export function ExpenseItemsList({
                   setEditingWhoFor((open) => (open === charge.id ? null : charge.id))
                 }
                 className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-xs transition-colors ${
-                  targetedIds(charge).length > 0
+                  charge.appliesTo !== undefined
                     ? "bg-stone-800 text-amber-50 border border-stone-800"
                     : "bg-transparent border border-dashed border-stone-400 text-stone-500"
                 }`}

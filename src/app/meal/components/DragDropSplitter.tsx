@@ -5,6 +5,7 @@ import {
   DragEndEvent,
   DragOverlay,
   DragStartEvent,
+  KeyboardSensor,
   PointerSensor,
   useDraggable,
   useDroppable,
@@ -51,9 +52,14 @@ function itemShares(item: ReceiptItem): Map<string, number> {
   return shares;
 }
 
-function useLongPress(onLongPress: () => void, onTap: () => void, ms = 500) {
+function useLongPress(onLongPress: () => void, ms = 500) {
   const timer = useRef<number | null>(null);
   const firedLong = useRef(false);
+  useEffect(() => {
+    return () => {
+      if (timer.current !== null) window.clearTimeout(timer.current);
+    };
+  }, []);
   const start = () => {
     firedLong.current = false;
     timer.current = window.setTimeout(() => {
@@ -65,20 +71,14 @@ function useLongPress(onLongPress: () => void, onTap: () => void, ms = 500) {
     if (timer.current !== null) window.clearTimeout(timer.current);
     timer.current = null;
   };
-  useEffect(() => {
-    return () => {
-      if (timer.current !== null) window.clearTimeout(timer.current);
-    };
-  }, []);
   return {
-    onPointerDown: start,
-    onPointerUp: () => {
-      cancel();
-      if (!firedLong.current) onTap();
+    handlers: {
+      onPointerDown: start,
+      onPointerUp: cancel,
+      onPointerLeave: cancel,
+      onPointerCancel: cancel,
     },
-    onPointerLeave: cancel,
-    onDoubleClick: onLongPress,
-    onPointerCancel: cancel,
+    firedLongRef: firedLong,
   };
 }
 
@@ -97,24 +97,20 @@ function PersonChip({
   onOpenExact: () => void;
   canOpenExact: boolean;
 }) {
-  const press = useLongPress(
-    () => {
-      if (canOpenExact) onOpenExact();
-      else onToggle();
-    },
-    onToggle
-  );
+  const { handlers, firedLongRef } = useLongPress(() => {
+    if (canOpenExact) onOpenExact();
+    else onToggle();
+  });
   return (
     <button
       type="button"
-      {...press}
-      onClick={(event) => {
-        // Pointer taps are handled on pointer-up; only let keyboard "clicks" through.
-        if (event.detail === 0) {
-          onToggle();
-        } else {
-          event.preventDefault();
+      {...handlers}
+      onClick={() => {
+        if (firedLongRef.current) {
+          firedLongRef.current = false;
+          return;
         }
+        onToggle();
       }}
       className={`flex items-center px-2 py-1 rounded-full text-xs font-medium font-sans transition-all border select-none ${
         isAssigned
@@ -181,10 +177,10 @@ function ExactSplitEditor({
           >
             {person.name.charAt(0).toUpperCase()}
           </span>
-          <span className="text-sm text-gray-700 dark:text-gray-300 flex-1">
+          <span className="text-sm text-stone-700 flex-1">
             {person.name}
           </span>
-          <span className="text-gray-500">$</span>
+          <span className="text-stone-500">$</span>
           <input
             type="number"
             min="0"
@@ -193,15 +189,15 @@ function ExactSplitEditor({
             onChange={(event) =>
               setDrafts({ ...drafts, [person.id]: event.target.value })
             }
-            className="w-24 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white"
+            className="w-24 px-2 py-1 border border-stone-300 rounded bg-white text-sm text-stone-900"
           />
         </div>
       ))}
       <div
         className={`text-sm text-right ${
           remainingCents === 0
-            ? "text-green-600 dark:text-green-400"
-            : "text-amber-600 dark:text-amber-400"
+            ? "text-green-600"
+            : "text-amber-600"
         }`}
       >
         {remainingCents === 0
@@ -358,11 +354,11 @@ function ItemCard({
           <button
             type="button"
             onClick={() => setIsEditingAmounts((open) => !open)}
-            className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+            className="text-sm text-blue-600 hover:underline"
           >
             {hasValidExactSplits(item) ? "Edit custom amounts" : "Customize amounts"}
             {hasValidExactSplits(item) && (
-              <span className="ml-2 text-xs bg-blue-100 dark:bg-blue-900/30 px-1.5 py-0.5 rounded">
+              <span className="ml-2 text-xs bg-blue-100 px-1.5 py-0.5 rounded">
                 custom
               </span>
             )}
@@ -399,7 +395,8 @@ export function DragDropSplitter({
   }, []);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor)
   );
 
   const maybeCelebrate = (nextItems: ReceiptItem[]) => {
@@ -475,7 +472,7 @@ export function DragDropSplitter({
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className="space-y-3">
         {/* Sticky people strip */}
-        <div className="sticky top-2 z-10 bg-stone-900/90 backdrop-blur border border-stone-700 rounded-xl px-3 py-2 flex items-center gap-2 shadow-lg relative">
+        <div className="sticky top-2 z-10 bg-stone-900/90 backdrop-blur border border-stone-700 rounded-xl px-3 py-2 flex items-center gap-2 shadow-lg">
           <div className="flex gap-2 overflow-x-auto">
             {participants.map((person) => (
               <StripAvatar
