@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Plus, Edit3, Trash2, Package, Receipt, AlertTriangle, X } from "lucide-react";
-import type { Charge, ChargeKind, ReceiptItem } from "@/types/meal";
+import { Plus, Edit3, Trash2, Package, Receipt, AlertTriangle, X, Users } from "lucide-react";
+import type { Charge, ChargeKind, Person, ReceiptItem } from "@/types/meal";
 import { calculateSplit } from "@/utils/meal/splitCalculations";
 
 interface ExpenseItemsListProps {
@@ -13,6 +13,7 @@ interface ExpenseItemsListProps {
   charges: Charge[];
   onChargesChange: (charges: Charge[]) => void;
   scannedTotal: number | null;
+  participants: Person[];
 }
 
 const CHARGE_DEFS: { kind: ChargeKind; label: string }[] = [
@@ -33,10 +34,12 @@ export function ExpenseItemsList({
   charges,
   onChargesChange,
   scannedTotal,
+  participants,
 }: ExpenseItemsListProps) {
   const [editingItem, setEditingItem] = useState<string | null>(null);
   const [newItem, setNewItem] = useState({ name: "", price: "" });
   const [isAddingNew, setIsAddingNew] = useState(false);
+  const [editingWhoFor, setEditingWhoFor] = useState<string | null>(null);
 
   const updateItem = (id: string, updates: Partial<ReceiptItem>) => {
     onItemsChange(
@@ -90,6 +93,39 @@ export function ExpenseItemsList({
         { id: crypto.randomUUID(), kind: "tip", label: "Tip", mode: "percent", value: percent },
       ]);
     }
+  };
+
+  const targetedIds = (charge: Charge): string[] =>
+    (charge.appliesTo ?? []).filter((id) =>
+      participants.some((p) => p.id === id)
+    );
+
+  const targetLabel = (charge: Charge): string => {
+    const ids = targetedIds(charge);
+    if (ids.length === 0 || ids.length === participants.length) return "Everyone";
+    const names = ids.map(
+      (id) => participants.find((p) => p.id === id)?.name ?? ""
+    );
+    if (names.length === 1) return names[0];
+    if (names.length === 2) return names.join(" & ");
+    return `${names.length} people`;
+  };
+
+  const toggleChargeTarget = (chargeId: string, personId: string) => {
+    onChargesChange(
+      charges.map((charge) => {
+        if (charge.id !== chargeId) return charge;
+        const current = charge.appliesTo ?? [];
+        const next = current.includes(personId)
+          ? current.filter((id) => id !== personId)
+          : [...current, personId];
+        const normalized =
+          next.length === 0 || next.length === participants.length
+            ? undefined
+            : next;
+        return { ...charge, appliesTo: normalized };
+      })
+    );
   };
 
   // Totals-only invocation of the money engine: no people, so perPerson is
@@ -287,52 +323,97 @@ export function ExpenseItemsList({
         )}
 
         {charges.map((charge) => (
-          <div key={charge.id} className="flex items-center gap-3">
-            <span className="w-24 text-sm font-medium text-gray-700 dark:text-gray-300">
-              {charge.label}
-            </span>
-            <div className="flex rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600">
+          <div key={charge.id}>
+            <div className="flex items-center gap-3">
+              <span className="w-24 text-sm font-medium text-gray-700 dark:text-gray-300">
+                {charge.label}
+              </span>
+              <div className="flex rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600">
+                <button
+                  type="button"
+                  onClick={() => updateCharge(charge.id, { mode: "amount" })}
+                  className={`px-2 py-1 text-sm ${
+                    charge.mode === "amount"
+                      ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                      : "bg-white dark:bg-gray-700 text-gray-500"
+                  }`}
+                >
+                  $
+                </button>
+                <button
+                  type="button"
+                  onClick={() => updateCharge(charge.id, { mode: "percent" })}
+                  className={`px-2 py-1 text-sm ${
+                    charge.mode === "percent"
+                      ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                      : "bg-white dark:bg-gray-700 text-gray-500"
+                  }`}
+                >
+                  %
+                </button>
+              </div>
+              <input
+                type="number"
+                min="0"
+                step={charge.mode === "percent" ? "0.5" : "0.01"}
+                value={charge.value}
+                onChange={(event) =>
+                  updateCharge(charge.id, { value: parseFloat(event.target.value) || 0 })
+                }
+                className="w-28 px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+              />
               <button
                 type="button"
-                onClick={() => updateCharge(charge.id, { mode: "amount" })}
-                className={`px-2 py-1 text-sm ${
-                  charge.mode === "amount"
-                    ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                    : "bg-white dark:bg-gray-700 text-gray-500"
+                onClick={() =>
+                  setEditingWhoFor((open) => (open === charge.id ? null : charge.id))
+                }
+                className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-xs transition-colors ${
+                  targetedIds(charge).length > 0
+                    ? "bg-blue-50 border border-blue-500 text-blue-700 font-semibold"
+                    : "bg-gray-100 border border-dashed border-gray-400 text-gray-500"
                 }`}
               >
-                $
+                <Users className="w-3 h-3" />
+                {targetLabel(charge)}
               </button>
-              <button
-                type="button"
-                onClick={() => updateCharge(charge.id, { mode: "percent" })}
-                className={`px-2 py-1 text-sm ${
-                  charge.mode === "percent"
-                    ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                    : "bg-white dark:bg-gray-700 text-gray-500"
-                }`}
-              >
-                %
-              </button>
+              <span className="text-sm text-gray-500 dark:text-gray-400 flex-1">
+                {formatCurrency(
+                  totals.charges.find((c) => c.chargeId === charge.id)?.amount ?? 0
+                )}
+              </span>
+              <Button variant="ghost" size="sm" onClick={() => removeCharge(charge.id)}>
+                <X className="w-4 h-4" />
+              </Button>
             </div>
-            <input
-              type="number"
-              min="0"
-              step={charge.mode === "percent" ? "0.5" : "0.01"}
-              value={charge.value}
-              onChange={(event) =>
-                updateCharge(charge.id, { value: parseFloat(event.target.value) || 0 })
-              }
-              className="w-28 px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
-            />
-            <span className="text-sm text-gray-500 dark:text-gray-400 flex-1">
-              {formatCurrency(
-                totals.charges.find((c) => c.chargeId === charge.id)?.amount ?? 0
-              )}
-            </span>
-            <Button variant="ghost" size="sm" onClick={() => removeCharge(charge.id)}>
-              <X className="w-4 h-4" />
-            </Button>
+            {editingWhoFor === charge.id && (
+              <div className="flex flex-wrap items-center gap-2 mt-2 ml-2">
+                <span className="text-[10px] uppercase tracking-wider text-gray-400">
+                  Who pays:
+                </span>
+                {participants.map((person) => {
+                  const selected = targetedIds(charge).includes(person.id);
+                  return (
+                    <button
+                      key={person.id}
+                      type="button"
+                      onClick={() => toggleChargeTarget(charge.id, person.id)}
+                      className={`px-3 py-1 rounded-full text-xs font-medium border transition-all ${
+                        selected
+                          ? "text-white border-transparent"
+                          : "text-gray-500 border-gray-300 bg-transparent"
+                      }`}
+                      style={selected ? { backgroundColor: person.color } : undefined}
+                    >
+                      {selected ? "✓ " : ""}
+                      {person.name}
+                    </button>
+                  );
+                })}
+                <span className="text-[10px] text-gray-400">
+                  none selected = everyone
+                </span>
+              </div>
+            )}
           </div>
         ))}
 

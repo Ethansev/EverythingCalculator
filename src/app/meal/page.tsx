@@ -94,6 +94,14 @@ export default function MealExpensePage() {
           : { ...item, assignedTo: kept, exactSplits: undefined };
       })
     );
+    setCharges((prev) =>
+      prev.map((charge) => {
+        if (!charge.appliesTo) return charge;
+        const kept = charge.appliesTo.filter((id) => validIds.has(id));
+        if (kept.length === charge.appliesTo.length) return charge;
+        return { ...charge, appliesTo: kept.length > 0 ? kept : undefined };
+      })
+    );
     setParticipants(next);
   };
 
@@ -235,6 +243,7 @@ export default function MealExpensePage() {
                 charges={charges}
                 onChargesChange={setCharges}
                 scannedTotal={scannedTotal}
+                participants={participants}
               />
             )}
 

@@ -29,12 +29,29 @@ export function ExpenseSummary({
   const result = calculateSplit(items, charges, participants);
   const getPersonById = (id: string) => participants.find((p) => p.id === id);
 
+  const chargeTargetNote = (chargeId: string): string | null => {
+    const charge = charges.find((c) => c.id === chargeId);
+    const ids = (charge?.appliesTo ?? []).filter((id) =>
+      participants.some((p) => p.id === id)
+    );
+    if (ids.length === 0 || ids.length === participants.length) return null;
+    const names = ids
+      .map((id) => participants.find((p) => p.id === id)?.name)
+      .filter((name): name is string => typeof name === "string");
+    if (names.length === 1) return names[0];
+    if (names.length === 2) return names.join(" & ");
+    return `${names.length} people`;
+  };
+
   const generateSummaryText = () => {
     const header = "💰 Expense Split Summary\n\n";
     const totalsText =
       `Subtotal: ${formatCurrency(result.subtotal)}\n` +
       result.charges
-        .map((charge) => `${charge.label}: ${formatCurrency(charge.amount)}\n`)
+        .map((charge) => {
+          const note = chargeTargetNote(charge.chargeId);
+          return `${charge.label}${note ? ` (${note})` : ""}: ${formatCurrency(charge.amount)}\n`;
+        })
         .join("") +
       `Total: ${formatCurrency(result.grandTotal)}\n\n`;
 
@@ -114,7 +131,11 @@ export function ExpenseSummary({
               <div className="text-lg font-semibold text-blue-900 dark:text-blue-100">
                 {formatCurrency(charge.amount)}
               </div>
-              <div className="text-sm text-blue-600 dark:text-blue-400">{charge.label}</div>
+              <div className="text-sm text-blue-600 dark:text-blue-400">
+                {charge.label}
+                {chargeTargetNote(charge.chargeId) !== null &&
+                  ` · ${chargeTargetNote(charge.chargeId)}`}
+              </div>
             </div>
           ))}
         </div>
