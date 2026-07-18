@@ -1,4 +1,4 @@
-# SplitCheck (working name) — Product & V1 Design
+# ExactSplit — Product & V1 Design
 
 **Date:** 2026-07-17
 **Status:** Approved pending user review
@@ -44,11 +44,12 @@ is a beautiful receipt, not a red number.
 
 | Question | Decision |
 | --- | --- |
-| Feature vs product | Standalone product, new repo (working name `splitcheck`; final name TBD) |
+| Feature vs product | Standalone product, new repo `exactsplit` — name FINAL: ExactSplit (vetted 2026-07-18: no competitors; exactsplit.com/.app/.co all available at decision time) |
 | Sharing mechanism | Native share sheet + link; the app never sends texts/emails in V1 |
 | Recipient experience V1 | Read-only themed receipt; live claiming is a later sub-project |
 | Accounts | Optional in V1: guest mode is the default path; Google sign-in unlocks cross-device history and claims guest checks |
 | Stack | Next.js 16 + Railway Postgres + Prisma; app hosted on Railway (one project, private networking) |
+| Name rationale | Keyword "split" for store search + the penny-exact promise; the Splitwise formula without the crowd |
 | Old repo | everythingcalculator untouched; separate "maybe" todo for local persistence there |
 
 ## V1 scope (sub-project 1: the table, the share, the settle)
