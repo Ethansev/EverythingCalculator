@@ -160,6 +160,7 @@ export default function MealExpensePage() {
         <DragDropSplitter
           items={items}
           participants={participants}
+          charges={charges}
           onItemsChange={setItems}
         />
       )}

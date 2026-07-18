@@ -9,15 +9,15 @@ import {
   useDroppable,
 } from "@dnd-kit/core";
 import { useState } from "react";
-import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { UserPlus, Users, DollarSign, Sparkles } from "lucide-react";
-import type { Person, ReceiptItem } from "@/types/meal";
-import { allocateCents } from "@/utils/meal/splitCalculations";
+import { Users } from "lucide-react";
+import type { Person, ReceiptItem, Charge } from "@/types/meal";
+import { allocateCents, calculateSplit } from "@/utils/meal/splitCalculations";
 
 interface DragDropSplitterProps {
   items: ReceiptItem[];
   participants: Person[];
+  charges: Charge[];
   onItemsChange: (items: ReceiptItem[]) => void;
 }
 
@@ -82,7 +82,7 @@ function ExactSplitEditor({
   };
 
   return (
-    <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg space-y-2">
+    <div className="mt-3 p-3 bg-stone-100 rounded-lg space-y-2">
       {assignedParticipants.map((person) => (
         <div key={person.id} className="flex items-center gap-2">
           <span
@@ -137,9 +137,150 @@ function ExactSplitEditor({
   );
 }
 
+function StripAvatar({ person, total }: { person: Person; total: number }) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: person.id,
+  });
+  return (
+    <div
+      ref={setNodeRef}
+      {...listeners}
+      {...attributes}
+      data-person-id={person.id}
+      style={{ touchAction: "none" }}
+      className={`flex flex-col items-center cursor-grab active:cursor-grabbing select-none ${
+        isDragging ? "opacity-50" : ""
+      }`}
+    >
+      <div
+        className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold ring-2 ring-stone-900 shadow"
+        style={{ backgroundColor: person.color }}
+      >
+        {person.name.charAt(0).toUpperCase()}
+      </div>
+      <span className="text-[10px] font-receipt text-stone-300 mt-0.5">
+        ${total.toFixed(2)}
+      </span>
+    </div>
+  );
+}
+
+function ItemCard({
+  item,
+  participants,
+  assignedParticipants,
+  onToggle,
+  onSetExactSplits,
+}: {
+  item: ReceiptItem;
+  participants: Person[];
+  assignedParticipants: Person[];
+  onToggle: (personId: string) => void;
+  onSetExactSplits: (splits: Record<string, number> | undefined) => void;
+}) {
+  const { isOver, setNodeRef } = useDroppable({
+    id: item.id,
+  });
+  const [isEditingAmounts, setIsEditingAmounts] = useState(false);
+  const shares = itemShares(item);
+
+  const state: "unassigned" | "custom" | "assigned" =
+    assignedParticipants.length === 0
+      ? "unassigned"
+      : item.exactSplits
+      ? "custom"
+      : "assigned";
+  const edgeColor =
+    state === "custom" ? "#8b5cf6" : assignedParticipants[0]?.color ?? "#3b82f6";
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`rounded-lg px-3 py-2.5 transition-all font-receipt ${
+        state === "unassigned"
+          ? `border-[1.5px] border-dashed ${
+              isOver ? "border-blue-400 bg-blue-50" : "border-amber-500 bg-amber-50"
+            }`
+          : `bg-[#fdfbf7] border border-stone-200 shadow ${
+              isOver ? "ring-2 ring-blue-400" : ""
+            }`
+      }`}
+      style={
+        state === "unassigned" ? undefined : { borderLeft: `4px solid ${edgeColor}` }
+      }
+    >
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <span className="font-bold uppercase text-sm text-stone-800">
+          {item.name}
+        </span>
+        <span className="text-sm text-stone-500">${item.price.toFixed(2)}</span>
+        {state === "custom" && (
+          <span className="text-[10px] font-bold tracking-wider text-violet-700 border-[1.5px] border-violet-600 rounded px-1 -rotate-3">
+            CUSTOM
+          </span>
+        )}
+        {state === "unassigned" && (
+          <span className="text-xs text-amber-700">needs people</span>
+        )}
+        <div className="flex flex-wrap gap-1.5 ml-auto">
+          {participants.map((person) => {
+            const isAssigned = item.assignedTo.includes(person.id);
+            const share = shares.get(person.id);
+            return (
+              <button
+                key={person.id}
+                type="button"
+                onClick={() => onToggle(person.id)}
+                className={`font-sans flex items-center px-2 py-1 rounded-full text-xs font-medium transition-all border ${
+                  isAssigned
+                    ? "text-white border-transparent"
+                    : "text-gray-500 dark:text-gray-400 border-gray-300 dark:border-gray-600 bg-transparent"
+                }`}
+                style={isAssigned ? { backgroundColor: person.color } : undefined}
+              >
+                {person.name}
+                {isAssigned && share !== undefined && (
+                  <span className="ml-1 opacity-90">${share.toFixed(2)}</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Customize amounts expander */}
+      {assignedParticipants.length >= 2 && (
+        <div className="mt-3">
+          <button
+            type="button"
+            onClick={() => setIsEditingAmounts((open) => !open)}
+            className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+          >
+            {item.exactSplits ? "Edit custom amounts" : "Customize amounts"}
+            {item.exactSplits && (
+              <span className="ml-2 text-xs bg-blue-100 dark:bg-blue-900/30 px-1.5 py-0.5 rounded">
+                custom
+              </span>
+            )}
+          </button>
+          {isEditingAmounts && (
+            <ExactSplitEditor
+              item={item}
+              assignedParticipants={assignedParticipants}
+              onSetExactSplits={onSetExactSplits}
+              onClose={() => setIsEditingAmounts(false)}
+            />
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function DragDropSplitter({
   items,
   participants,
+  charges,
   onItemsChange,
 }: DragDropSplitterProps) {
   const [draggedPerson, setDraggedPerson] = useState<Person | null>(null);
@@ -193,50 +334,52 @@ export function DragDropSplitter({
     );
   };
 
+  const split = calculateSplit(items, charges, participants);
+  const totalByPerson = new Map(
+    split.perPerson.map((p) => [p.personId, p.total])
+  );
+  const assignedCount = items.filter((i) => i.assignedTo.length > 0).length;
+
   return (
     <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <div className="space-y-6">
-        <div className="text-center">
-          <Sparkles className="w-12 h-12 mx-auto text-blue-600 dark:text-blue-400 mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-            Assign Items to People
-          </h3>
-          <p className="text-gray-600 dark:text-gray-300">
-            Tap chips to toggle assignment, drag people onto items, or use quick
-            actions below
-          </p>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="flex flex-wrap gap-3 justify-center">
-          <Button variant="outline" onClick={splitEqually}>
-            <Users className="w-4 h-4 mr-2" />
-            Split All Equally
-          </Button>
-          <Button variant="outline" onClick={clearAllAssignments}>
-            Clear All
-          </Button>
-        </div>
-
-        {/* Participants */}
-        <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-6">
-          <h4 className="font-medium text-gray-900 dark:text-white mb-4 flex items-center">
-            <UserPlus className="w-5 h-5 mr-2" />
-            Drag from here
-          </h4>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+      <div className="space-y-3">
+        {/* Sticky people strip */}
+        <div className="sticky top-2 z-10 bg-stone-900/90 backdrop-blur border border-stone-700 rounded-xl px-3 py-2 flex items-center gap-2 shadow-lg">
+          <div className="flex gap-2 overflow-x-auto">
             {participants.map((person) => (
-              <ParticipantCard key={person.id} person={person} />
+              <StripAvatar
+                key={person.id}
+                person={person}
+                total={totalByPerson.get(person.id) ?? 0}
+              />
             ))}
+          </div>
+          <span className="text-xs text-stone-400 whitespace-nowrap ml-1">
+            {assignedCount} of {items.length} assigned
+          </span>
+          <div className="ml-auto flex gap-1.5">
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-stone-700 bg-transparent text-stone-300 hover:bg-white/10 hover:text-white h-7 px-2 text-xs"
+              onClick={splitEqually}
+            >
+              <Users className="w-3 h-3 mr-1" />
+              Split equally
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-stone-700 bg-transparent text-stone-400 hover:bg-white/10 hover:text-white h-7 px-2 text-xs"
+              onClick={clearAllAssignments}
+            >
+              Clear
+            </Button>
           </div>
         </div>
 
-        {/* Items */}
-        <div className="space-y-4">
-          <h4 className="font-medium text-gray-900 dark:text-white flex items-center">
-            <DollarSign className="w-5 h-5 mr-2" />
-            Drop onto items
-          </h4>
+        {/* Item cards */}
+        <div className="space-y-2">
           {items.map((item) => (
             <ItemCard
               key={item.id}
@@ -256,37 +399,12 @@ export function DragDropSplitter({
             />
           ))}
         </div>
-
-        {/* Progress */}
-        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="font-medium text-blue-800 dark:text-blue-200">
-              Assignment Progress
-            </span>
-            <span className="text-blue-600 dark:text-blue-400">
-              {items.filter((item) => item.assignedTo.length > 0).length} /{" "}
-              {items.length}
-            </span>
-          </div>
-          <div className="w-full bg-blue-200 dark:bg-blue-800 rounded-full h-2">
-            <div
-              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-              style={{
-                width: `${
-                  (items.filter((item) => item.assignedTo.length > 0).length /
-                    items.length) *
-                  100
-                }%`,
-              }}
-            />
-          </div>
-        </div>
       </div>
 
       <DragOverlay>
         {draggedPerson && (
           <div
-            className="w-20 h-20 rounded-full flex items-center justify-center text-white font-medium shadow-lg opacity-80"
+            className="w-12 h-12 rounded-full flex items-center justify-center text-white font-medium shadow-lg opacity-80"
             style={{ backgroundColor: draggedPerson.color }}
           >
             {draggedPerson.name.charAt(0).toUpperCase()}
@@ -294,138 +412,5 @@ export function DragDropSplitter({
         )}
       </DragOverlay>
     </DndContext>
-  );
-}
-
-function ParticipantCard({ person }: { person: Person }) {
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-    id: person.id,
-  });
-
-  return (
-    <div
-      ref={setNodeRef}
-      className={`cursor-grab active:cursor-grabbing ${
-        isDragging ? "opacity-50" : ""
-      }`}
-      style={{ touchAction: "none" }}
-      {...listeners}
-      {...attributes}
-    >
-      <motion.div
-        whileHover={{ scale: isDragging ? 1 : 1.05 }}
-        whileTap={{ scale: isDragging ? 1 : 0.95 }}
-        className="flex flex-col items-center p-3 bg-white dark:bg-gray-700 rounded-lg shadow-sm hover:shadow-md transition-all"
-      >
-        <div
-          className="w-12 h-12 rounded-full flex items-center justify-center text-white font-medium mb-2"
-          style={{ backgroundColor: person.color }}
-        >
-          {person.name.charAt(0).toUpperCase()}
-        </div>
-        <span className="text-xs font-medium text-gray-900 dark:text-white text-center">
-          {person.name}
-        </span>
-      </motion.div>
-    </div>
-  );
-}
-
-function ItemCard({
-  item,
-  participants,
-  assignedParticipants,
-  onToggle,
-  onSetExactSplits,
-}: {
-  item: ReceiptItem;
-  participants: Person[];
-  assignedParticipants: Person[];
-  onToggle: (personId: string) => void;
-  onSetExactSplits: (splits: Record<string, number> | undefined) => void;
-}) {
-  const { isOver, setNodeRef } = useDroppable({
-    id: item.id,
-  });
-  const [isEditingAmounts, setIsEditingAmounts] = useState(false);
-  const shares = itemShares(item);
-
-  return (
-    <div
-      ref={setNodeRef}
-      className={`border-2 border-dashed rounded-lg p-4 transition-all ${
-        assignedParticipants.length > 0
-          ? "border-green-300 dark:border-green-600 bg-green-50 dark:bg-green-900/20"
-          : isOver
-          ? "border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20"
-          : "border-gray-300 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500"
-      }`}
-    >
-      <div className="flex items-center justify-between mb-3">
-        <div>
-          <h5 className="font-medium text-gray-900 dark:text-white">
-            {item.name}
-          </h5>
-          <div className="flex items-center mt-1">
-            <DollarSign className="w-4 h-4 text-gray-400 mr-1" />
-            <span className="font-semibold text-green-600 dark:text-green-400">
-              {item.price.toFixed(2)}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Tap-to-toggle chips for all participants */}
-      <div className="flex flex-wrap gap-2">
-        {participants.map((person) => {
-          const isAssigned = item.assignedTo.includes(person.id);
-          const share = shares.get(person.id);
-          return (
-            <button
-              key={person.id}
-              type="button"
-              onClick={() => onToggle(person.id)}
-              className={`flex items-center px-2 py-1 rounded-full text-xs font-medium transition-all border ${
-                isAssigned
-                  ? "text-white border-transparent"
-                  : "text-gray-500 dark:text-gray-400 border-gray-300 dark:border-gray-600 bg-transparent"
-              }`}
-              style={isAssigned ? { backgroundColor: person.color } : undefined}
-            >
-              {person.name}
-              {isAssigned && share !== undefined && (
-                <span className="ml-1 opacity-90">${share.toFixed(2)}</span>
-              )}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Customize amounts expander */}
-      {assignedParticipants.length >= 2 && (
-        <div className="mt-3">
-          <button
-            type="button"
-            onClick={() => setIsEditingAmounts((open) => !open)}
-            className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
-          >
-            {item.exactSplits ? "Edit custom amounts" : "Customize amounts"}
-            {item.exactSplits && (
-              <span className="ml-2 text-xs bg-blue-100 dark:bg-blue-900/30 px-1.5 py-0.5 rounded">
-                custom
-              </span>
-            )}
-          </button>
-          {isEditingAmounts && (
-            <ExactSplitEditor
-              item={item}
-              assignedParticipants={assignedParticipants}
-              onSetExactSplits={onSetExactSplits}
-              onClose={() => setIsEditingAmounts(false)}
-            />
-          )}
-        </div>
-      )}
-    </div>
   );
 }
