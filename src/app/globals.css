@@ -76,3 +76,49 @@ body {
   color: hsl(var(--foreground));
   font-family: var(--font-sans), sans-serif;
 }
+
+/* Receipt-paper theme (meal calculator) */
+.font-receipt {
+  font-family: var(--font-receipt), "Courier New", monospace;
+}
+
+.receipt-paper {
+  position: relative;
+  background: #fdfbf7;
+  color: #292524;
+  border-radius: 2px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+}
+
+.receipt-paper::before,
+.receipt-paper::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 8px;
+  background-repeat: repeat-x;
+  background-size: 16px 16px;
+}
+
+.receipt-paper::before {
+  bottom: 100%;
+  background-image: linear-gradient(
+      135deg,
+      transparent 75%,
+      #fdfbf7 75%
+    ),
+    linear-gradient(225deg, transparent 75%, #fdfbf7 75%);
+  background-position: 0 100%, 8px 100%;
+}
+
+.receipt-paper::after {
+  top: 100%;
+  background-image: linear-gradient(45deg, #fdfbf7 25%, transparent 25%),
+    linear-gradient(-45deg, #fdfbf7 25%, transparent 25%);
+  background-position: 0 0, 8px 0;
+}
+
+.receipt-dashed {
+  border-top: 1.5px dashed #d6d3d1;
+}

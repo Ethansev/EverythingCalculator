@@ -8,6 +8,7 @@ import { ExpenseItemsList } from "./components/ExpenseItemsList";
 import { DragDropSplitter } from "./components/DragDropSplitter";
 import { ParticipantManager } from "@/components/ParticipantManager";
 import { ExpenseSummary } from "@/components/ExpenseSummary";
+import { ReceiptSurface } from "./components/ReceiptSurface";
 import { Camera, Users, ListCheck, Calculator, Receipt } from "lucide-react";
 import Link from "next/link";
 import type { Person, ReceiptItem, Charge } from "@/types/meal";
@@ -126,23 +127,70 @@ export default function MealExpensePage() {
     }
   };
 
+  const stepContent = (
+    <>
+      {currentStep === "upload" && (
+        <ImageUpload
+          uploadedImage={uploadedImage}
+          onImageUpload={setUploadedImage}
+          onScanComplete={handleScanComplete}
+          onStartFromScratch={handleStartFromScratch}
+        />
+      )}
+
+      {currentStep === "participants" && (
+        <ParticipantManager
+          participants={participants}
+          onParticipantsChange={handleParticipantsChange}
+        />
+      )}
+
+      {currentStep === "items" && (
+        <ExpenseItemsList
+          items={items}
+          onItemsChange={setItems}
+          charges={charges}
+          onChargesChange={setCharges}
+          scannedTotal={scannedTotal}
+          participants={participants}
+        />
+      )}
+
+      {currentStep === "split" && (
+        <DragDropSplitter
+          items={items}
+          participants={participants}
+          onItemsChange={setItems}
+        />
+      )}
+
+      {currentStep === "summary" && (
+        <ExpenseSummary
+          items={items}
+          participants={participants}
+          charges={charges}
+        />
+      )}
+    </>
+  );
+
   return (
-    <main className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 dark:from-gray-900 dark:to-gray-800">
+    <main className="min-h-screen bg-[radial-gradient(1100px_500px_at_50%_-10%,#2a2320,#171412)] bg-[#171412]">
       <div className="container mx-auto px-4 py-8">
         <div className="mb-6">
           <Link href="/">
-            <Button variant="ghost" size="sm">
+            <Button variant="ghost" size="sm" className="text-stone-400 hover:text-white hover:bg-white/10">
               ← Back to Home
             </Button>
           </Link>
         </div>
 
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            Restaurant & Meal Expenses
+          <h1 className="font-receipt uppercase tracking-[0.2em] text-2xl sm:text-3xl font-bold text-stone-100 mb-2">
+            Split the Check
           </h1>
-          <p className="text-gray-600 dark:text-gray-300">
-            Split restaurant bills by uploading receipts and assigning items
+          <p className="text-stone-400">
+            Scan a receipt or build one from scratch — split it to the penny
           </p>
         </div>
 
@@ -171,7 +219,7 @@ export default function MealExpensePage() {
                         className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${
                           isActive || isCompleted
                             ? "bg-green-600 text-white"
-                            : "bg-gray-200 dark:bg-gray-700 text-gray-500"
+                            : "bg-stone-800 text-stone-500"
                         } ${index <= maxStepReached ? "cursor-pointer" : "cursor-default"}`}
                         whileHover={{ scale: index <= maxStepReached ? 1.05 : 1 }}
                         whileTap={{ scale: index <= maxStepReached ? 0.95 : 1 }}
@@ -180,7 +228,7 @@ export default function MealExpensePage() {
                       </motion.button>
                       <span
                         className={`text-xs mt-2 font-medium ${
-                          isActive ? "text-green-600" : "text-gray-500"
+                          isActive ? "text-green-400" : "text-stone-500"
                         }`}
                       >
                         {step.title}
@@ -192,7 +240,7 @@ export default function MealExpensePage() {
                         className={`flex-1 h-1 mx-4 rounded ${
                           isCompleted
                             ? "bg-green-600"
-                            : "bg-gray-200 dark:bg-gray-700"
+                            : "bg-stone-800"
                         }`}
                       />
                     )}
@@ -202,10 +250,10 @@ export default function MealExpensePage() {
             </div>
 
             <div className="text-center">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+              <h2 className="text-2xl font-bold text-stone-100 mb-2">
                 {steps[currentStepIndex].title}
               </h2>
-              <p className="text-gray-600 dark:text-gray-300">
+              <p className="text-stone-400">
                 {steps[currentStepIndex].description}
               </p>
             </div>
@@ -214,53 +262,16 @@ export default function MealExpensePage() {
           {/* Step Content */}
           <motion.div
             key={currentStep}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -16 }}
             transition={{ duration: 0.3 }}
-            className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 mb-8"
+            className="mb-8"
           >
-            {currentStep === "upload" && (
-              <ImageUpload
-                uploadedImage={uploadedImage}
-                onImageUpload={setUploadedImage}
-                onScanComplete={handleScanComplete}
-                onStartFromScratch={handleStartFromScratch}
-              />
-            )}
-
-            {currentStep === "participants" && (
-              <ParticipantManager
-                participants={participants}
-                onParticipantsChange={handleParticipantsChange}
-              />
-            )}
-
-            {currentStep === "items" && (
-              <ExpenseItemsList
-                items={items}
-                onItemsChange={setItems}
-                charges={charges}
-                onChargesChange={setCharges}
-                scannedTotal={scannedTotal}
-                participants={participants}
-              />
-            )}
-
-            {currentStep === "split" && (
-              <DragDropSplitter
-                items={items}
-                participants={participants}
-                onItemsChange={setItems}
-              />
-            )}
-
-            {currentStep === "summary" && (
-              <ExpenseSummary
-                items={items}
-                participants={participants}
-                charges={charges}
-              />
+            {currentStep === "split" ? (
+              stepContent
+            ) : (
+              <ReceiptSurface>{stepContent}</ReceiptSurface>
             )}
           </motion.div>
 
@@ -270,16 +281,17 @@ export default function MealExpensePage() {
               variant="outline"
               onClick={handlePrevious}
               disabled={currentStepIndex === 0}
+              className="border-stone-700 bg-transparent text-stone-300 hover:bg-white/10 hover:text-white"
             >
               Previous
             </Button>
 
-            <div className="text-sm text-gray-500">
+            <div className="text-sm text-stone-500">
               Step {currentStepIndex + 1} of {steps.length}
             </div>
 
             {currentStepIndex < steps.length - 1 ? (
-              <Button onClick={handleNext} disabled={!canProceed()}>
+              <Button onClick={handleNext} disabled={!canProceed()} className="bg-green-600 hover:bg-green-500 text-white">
                 Next
               </Button>
             ) : (

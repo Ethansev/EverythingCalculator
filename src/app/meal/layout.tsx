@@ -1,4 +1,11 @@
 import type { Metadata } from "next";
+import { Space_Mono } from "next/font/google";
+
+const receiptMono = Space_Mono({
+  weight: ["400", "700"],
+  subsets: ["latin"],
+  variable: "--font-receipt",
+});
 
 export const metadata: Metadata = {
   title: "Restaurant Bill Splitter",
@@ -33,5 +40,5 @@ export default function MealLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return children;
+  return <div className={receiptMono.variable}>{children}</div>;
 }
