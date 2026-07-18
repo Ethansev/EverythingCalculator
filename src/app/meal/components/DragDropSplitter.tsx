@@ -11,7 +11,7 @@ import {
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Users } from "lucide-react";
@@ -65,6 +65,11 @@ function useLongPress(onLongPress: () => void, onTap: () => void, ms = 500) {
     if (timer.current !== null) window.clearTimeout(timer.current);
     timer.current = null;
   };
+  useEffect(() => {
+    return () => {
+      if (timer.current !== null) window.clearTimeout(timer.current);
+    };
+  }, []);
   return {
     onPointerDown: start,
     onPointerUp: () => {
@@ -73,6 +78,7 @@ function useLongPress(onLongPress: () => void, onTap: () => void, ms = 500) {
     },
     onPointerLeave: cancel,
     onDoubleClick: onLongPress,
+    onPointerCancel: cancel,
   };
 }
 
@@ -102,7 +108,14 @@ function PersonChip({
     <button
       type="button"
       {...press}
-      onClick={(event) => event.preventDefault()}
+      onClick={(event) => {
+        // Pointer taps are handled on pointer-up; only let keyboard "clicks" through.
+        if (event.detail === 0) {
+          onToggle();
+        } else {
+          event.preventDefault();
+        }
+      }}
       className={`flex items-center px-2 py-1 rounded-full text-xs font-medium font-sans transition-all border select-none ${
         isAssigned
           ? "text-white border-transparent"
@@ -239,7 +252,7 @@ function StripAvatar({
         isDragging ? "opacity-50" : ""
       }`}
     >
-      <button type="button" onClick={onSpotlight}>
+      <button type="button" onClick={onSpotlight} aria-label={`Spotlight ${person.name}`}>
         <div
           className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold ring-2 ring-stone-900 shadow"
           style={
@@ -378,6 +391,12 @@ export function DragDropSplitter({
   const [spotlightId, setSpotlightId] = useState<string | null>(null);
   const [celebrate, setCelebrate] = useState(false);
   const celebrateTimer = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (celebrateTimer.current !== null) window.clearTimeout(celebrateTimer.current);
+    };
+  }, []);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
