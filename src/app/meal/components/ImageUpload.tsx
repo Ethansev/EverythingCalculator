@@ -39,17 +39,24 @@ function ScanErrorNotice({
       animate={{ opacity: 1, y: 0 }}
       className="text-center space-y-4"
     >
-      <div className="inline-flex items-center px-6 py-3 rounded-full bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
-        <AlertTriangle className="w-5 h-5 mr-2 text-red-600 dark:text-red-400" />
-        <span className="text-red-800 dark:text-red-200 font-medium">
+      <div className="inline-flex items-center px-6 py-3 rounded-full border-[1.5px] border-dashed border-amber-600 bg-amber-50 text-amber-800">
+        <AlertTriangle className="w-5 h-5 mr-2 text-amber-600" />
+        <span className="font-medium">
           {message}
         </span>
       </div>
       <div className="flex justify-center gap-3">
-        <Button variant="outline" onClick={onRetry}>
+        <Button
+          variant="outline"
+          onClick={onRetry}
+          className="border-stone-300 text-stone-700 hover:bg-stone-100"
+        >
           Try another photo
         </Button>
-        <Button onClick={onStartFromScratch}>
+        <Button
+          onClick={onStartFromScratch}
+          className="bg-green-600 hover:bg-green-500 text-white"
+        >
           <PencilLine className="w-4 h-4 mr-2" />
           Enter items manually
         </Button>
@@ -179,9 +186,9 @@ export function ImageUpload({
               exit={{ opacity: 0, y: -20 }}
               className="text-center"
             >
-              <div className="inline-flex items-center px-6 py-3 rounded-full bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-                <Zap className="w-5 h-5 mr-2 text-blue-600 dark:text-blue-400 animate-pulse" />
-                <span className="text-blue-800 dark:text-blue-200 font-medium">
+              <div className="inline-flex items-center px-6 py-3 rounded-full bg-stone-100 border border-stone-300 text-stone-700">
+                <Zap className="w-5 h-5 mr-2 animate-pulse" />
+                <span className="font-medium">
                   Reading your receipt...
                 </span>
               </div>
@@ -194,9 +201,9 @@ export function ImageUpload({
               animate={{ opacity: 1, scale: 1 }}
               className="text-center"
             >
-              <div className="inline-flex items-center px-6 py-3 rounded-full bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
-                <CheckCircle className="w-5 h-5 mr-2 text-green-600 dark:text-green-400" />
-                <span className="text-green-800 dark:text-green-200 font-medium">
+              <div className="inline-flex items-center px-6 py-3 rounded-full bg-green-50 border border-green-600 text-green-800">
+                <CheckCircle className="w-5 h-5 mr-2" />
+                <span className="font-medium">
                   Found {scanState.itemCount} item
                   {scanState.itemCount === 1 ? "" : "s"} — you can review and edit
                   everything in the next steps
@@ -234,23 +241,23 @@ export function ImageUpload({
         <div className="space-y-4">
         <div
           {...getRootProps()}
-          className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all h-full ${
+          className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all h-full ${
             isDragActive
-              ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
-              : "border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500"
+              ? "border-green-600 bg-green-50"
+              : "border-stone-300 hover:border-stone-500"
           }`}
         >
           <input {...getInputProps()} />
           <motion.div animate={{ y: isDragActive ? -10 : 0 }} transition={{ duration: 0.2 }}>
             <Upload
               className={`w-12 h-12 mx-auto mb-4 ${
-                isDragActive ? "text-blue-500" : "text-gray-400"
+                isDragActive ? "text-green-600" : "text-stone-400"
               }`}
             />
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+            <h3 className="text-lg font-semibold text-stone-800 mb-2">
               {isDragActive ? "Drop your receipt here" : "Scan a receipt"}
             </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+            <p className="text-sm text-stone-500 mb-4">
               Drag and drop a photo, or click to browse. Items, tax, and gratuity
               are detected automatically — everything stays editable.
             </p>
@@ -260,6 +267,7 @@ export function ImageUpload({
                 event.stopPropagation();
                 cameraInputRef.current?.click();
               }}
+              className="border-stone-300 text-stone-700 hover:bg-stone-100"
             >
               <Camera className="w-4 h-4 mr-2" />
               Take Photo
@@ -284,13 +292,13 @@ export function ImageUpload({
       <button
         type="button"
         onClick={handleStartFromScratch}
-        className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-2xl p-8 text-center cursor-pointer transition-all hover:border-green-400 dark:hover:border-green-500"
+        className="border-2 border-dashed border-stone-300 rounded-lg p-8 text-center cursor-pointer transition-all hover:border-green-600"
       >
-        <PencilLine className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+        <PencilLine className="w-12 h-12 mx-auto mb-4 text-stone-400" />
+        <h3 className="text-lg font-semibold text-stone-800 mb-2">
           Start from scratch
         </h3>
-        <p className="text-sm text-gray-600 dark:text-gray-300">
+        <p className="text-sm text-stone-500">
           No receipt? Add people and type in items and charges yourself.
         </p>
       </button>
