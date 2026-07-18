@@ -21,18 +21,24 @@ interface DragDropSplitterProps {
   onItemsChange: (items: ReceiptItem[]) => void;
 }
 
+function hasValidExactSplits(item: ReceiptItem): boolean {
+  const exact = item.exactSplits;
+  if (exact === undefined) return false;
+  const priceCents = Math.round(item.price * 100);
+  return (
+    Object.keys(exact).length === item.assignedTo.length &&
+    item.assignedTo.every((id) => typeof exact[id] === "number") &&
+    item.assignedTo.reduce((sum, id) => sum + Math.round(exact[id] * 100), 0) === priceCents
+  );
+}
+
 function itemShares(item: ReceiptItem): Map<string, number> {
   const shares = new Map<string, number>();
   if (item.assignedTo.length === 0) return shares;
   const exact = item.exactSplits;
   const priceCents = Math.round(item.price * 100);
-  const exactValid =
-    exact !== undefined &&
-    Object.keys(exact).length === item.assignedTo.length &&
-    item.assignedTo.every((id) => typeof exact[id] === "number") &&
-    item.assignedTo.reduce((sum, id) => sum + Math.round(exact[id] * 100), 0) ===
-      priceCents;
-  if (exactValid) {
+  const exactValid = hasValidExactSplits(item);
+  if (exactValid && exact !== undefined) {
     for (const id of item.assignedTo) shares.set(id, exact[id]);
   } else {
     const cents = allocateCents(priceCents, item.assignedTo.map(() => 1));
@@ -187,7 +193,7 @@ function ItemCard({
   const state: "unassigned" | "custom" | "assigned" =
     assignedParticipants.length === 0
       ? "unassigned"
-      : item.exactSplits
+      : hasValidExactSplits(item)
       ? "custom"
       : "assigned";
   const edgeColor =
@@ -256,8 +262,8 @@ function ItemCard({
             onClick={() => setIsEditingAmounts((open) => !open)}
             className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
           >
-            {item.exactSplits ? "Edit custom amounts" : "Customize amounts"}
-            {item.exactSplits && (
+            {hasValidExactSplits(item) ? "Edit custom amounts" : "Customize amounts"}
+            {hasValidExactSplits(item) && (
               <span className="ml-2 text-xs bg-blue-100 dark:bg-blue-900/30 px-1.5 py-0.5 rounded">
                 custom
               </span>
