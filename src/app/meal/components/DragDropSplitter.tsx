@@ -5,10 +5,14 @@ import {
   DragEndEvent,
   DragOverlay,
   DragStartEvent,
+  PointerSensor,
   useDraggable,
   useDroppable,
+  useSensor,
+  useSensors,
 } from "@dnd-kit/core";
-import { useState } from "react";
+import { useState, useRef } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Users } from "lucide-react";
 import type { Person, ReceiptItem, Charge } from "@/types/meal";
@@ -45,6 +49,73 @@ function itemShares(item: ReceiptItem): Map<string, number> {
     item.assignedTo.forEach((id, index) => shares.set(id, cents[index] / 100));
   }
   return shares;
+}
+
+function useLongPress(onLongPress: () => void, onTap: () => void, ms = 500) {
+  const timer = useRef<number | null>(null);
+  const firedLong = useRef(false);
+  const start = () => {
+    firedLong.current = false;
+    timer.current = window.setTimeout(() => {
+      firedLong.current = true;
+      onLongPress();
+    }, ms);
+  };
+  const cancel = () => {
+    if (timer.current !== null) window.clearTimeout(timer.current);
+    timer.current = null;
+  };
+  return {
+    onPointerDown: start,
+    onPointerUp: () => {
+      cancel();
+      if (!firedLong.current) onTap();
+    },
+    onPointerLeave: cancel,
+    onDoubleClick: onLongPress,
+  };
+}
+
+function PersonChip({
+  person,
+  isAssigned,
+  share,
+  onToggle,
+  onOpenExact,
+  canOpenExact,
+}: {
+  person: Person;
+  isAssigned: boolean;
+  share: number | undefined;
+  onToggle: () => void;
+  onOpenExact: () => void;
+  canOpenExact: boolean;
+}) {
+  const press = useLongPress(
+    () => {
+      if (canOpenExact) onOpenExact();
+      else onToggle();
+    },
+    onToggle
+  );
+  return (
+    <button
+      type="button"
+      {...press}
+      onClick={(event) => event.preventDefault()}
+      className={`flex items-center px-2 py-1 rounded-full text-xs font-medium font-sans transition-all border select-none ${
+        isAssigned
+          ? "text-white border-transparent"
+          : "text-stone-500 border-stone-300 bg-transparent"
+      }`}
+      style={isAssigned ? { backgroundColor: person.color } : undefined}
+    >
+      {person.name}
+      {isAssigned && share !== undefined && (
+        <span className="ml-1 opacity-90">${share.toFixed(2)}</span>
+      )}
+    </button>
+  );
 }
 
 function ExactSplitEditor({
@@ -143,7 +214,17 @@ function ExactSplitEditor({
   );
 }
 
-function StripAvatar({ person, total }: { person: Person; total: number }) {
+function StripAvatar({
+  person,
+  total,
+  isSpotlit,
+  onSpotlight,
+}: {
+  person: Person;
+  total: number;
+  isSpotlit: boolean;
+  onSpotlight: () => void;
+}) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: person.id,
   });
@@ -158,12 +239,21 @@ function StripAvatar({ person, total }: { person: Person; total: number }) {
         isDragging ? "opacity-50" : ""
       }`}
     >
-      <div
-        className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold ring-2 ring-stone-900 shadow"
-        style={{ backgroundColor: person.color }}
-      >
-        {person.name.charAt(0).toUpperCase()}
-      </div>
+      <button type="button" onClick={onSpotlight}>
+        <div
+          className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold ring-2 ring-stone-900 shadow"
+          style={
+            isSpotlit
+              ? {
+                  backgroundColor: person.color,
+                  boxShadow: `0 0 0 2px #171412, 0 0 0 4px ${person.color}`,
+                }
+              : { backgroundColor: person.color }
+          }
+        >
+          {person.name.charAt(0).toUpperCase()}
+        </div>
+      </button>
       <span className="text-[10px] font-receipt text-stone-300 mt-0.5">
         ${total.toFixed(2)}
       </span>
@@ -177,12 +267,14 @@ function ItemCard({
   assignedParticipants,
   onToggle,
   onSetExactSplits,
+  dimmed,
 }: {
   item: ReceiptItem;
   participants: Person[];
   assignedParticipants: Person[];
   onToggle: (personId: string) => void;
   onSetExactSplits: (splits: Record<string, number> | undefined) => void;
+  dimmed: boolean;
 }) {
   const { isOver, setNodeRef } = useDroppable({
     id: item.id,
@@ -202,7 +294,7 @@ function ItemCard({
   return (
     <div
       ref={setNodeRef}
-      className={`rounded-lg px-3 py-2.5 transition-all font-receipt ${
+      className={`rounded-lg px-3 py-2.5 transition-all font-receipt ${dimmed ? "opacity-35 saturate-50" : ""} ${
         state === "unassigned"
           ? `border-[1.5px] border-dashed ${
               isOver ? "border-blue-400 bg-blue-50" : "border-amber-500 bg-amber-50"
@@ -233,22 +325,15 @@ function ItemCard({
             const isAssigned = item.assignedTo.includes(person.id);
             const share = shares.get(person.id);
             return (
-              <button
+              <PersonChip
                 key={person.id}
-                type="button"
-                onClick={() => onToggle(person.id)}
-                className={`font-sans flex items-center px-2 py-1 rounded-full text-xs font-medium transition-all border ${
-                  isAssigned
-                    ? "text-white border-transparent"
-                    : "text-gray-500 dark:text-gray-400 border-gray-300 dark:border-gray-600 bg-transparent"
-                }`}
-                style={isAssigned ? { backgroundColor: person.color } : undefined}
-              >
-                {person.name}
-                {isAssigned && share !== undefined && (
-                  <span className="ml-1 opacity-90">${share.toFixed(2)}</span>
-                )}
-              </button>
+                person={person}
+                isAssigned={isAssigned}
+                share={share}
+                onToggle={() => onToggle(person.id)}
+                onOpenExact={() => setIsEditingAmounts(true)}
+                canOpenExact={isAssigned && assignedParticipants.length >= 2}
+              />
             );
           })}
         </div>
@@ -290,21 +375,42 @@ export function DragDropSplitter({
   onItemsChange,
 }: DragDropSplitterProps) {
   const [draggedPerson, setDraggedPerson] = useState<Person | null>(null);
+  const [spotlightId, setSpotlightId] = useState<string | null>(null);
+  const [celebrate, setCelebrate] = useState(false);
+  const celebrateTimer = useRef<number | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
+  );
+
+  const maybeCelebrate = (nextItems: ReceiptItem[]) => {
+    const wasComplete =
+      items.length > 0 && items.every((i) => i.assignedTo.length > 0);
+    const isComplete =
+      nextItems.length > 0 && nextItems.every((i) => i.assignedTo.length > 0);
+    if (!wasComplete && isComplete) {
+      setCelebrate(true);
+      if (celebrateTimer.current !== null) {
+        window.clearTimeout(celebrateTimer.current);
+      }
+      celebrateTimer.current = window.setTimeout(() => setCelebrate(false), 1400);
+    }
+  };
 
   const toggleAssignment = (itemId: string, personId: string) => {
-    onItemsChange(
-      items.map((item) => {
-        if (item.id !== itemId) return item;
-        const isAssigned = item.assignedTo.includes(personId);
-        return {
-          ...item,
-          assignedTo: isAssigned
-            ? item.assignedTo.filter((id) => id !== personId)
-            : [...item.assignedTo, personId],
-          exactSplits: undefined,
-        };
-      })
-    );
+    const next = items.map((item) => {
+      if (item.id !== itemId) return item;
+      const isAssigned = item.assignedTo.includes(personId);
+      return {
+        ...item,
+        assignedTo: isAssigned
+          ? item.assignedTo.filter((id) => id !== personId)
+          : [...item.assignedTo, personId],
+        exactSplits: undefined,
+      };
+    });
+    maybeCelebrate(next);
+    onItemsChange(next);
   };
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -321,13 +427,13 @@ export function DragDropSplitter({
   };
 
   const splitEqually = () => {
-    onItemsChange(
-      items.map((item) => ({
-        ...item,
-        assignedTo: participants.map((p) => p.id),
-        exactSplits: undefined,
-      }))
-    );
+    const next = items.map((item) => ({
+      ...item,
+      assignedTo: participants.map((p) => p.id),
+      exactSplits: undefined,
+    }));
+    maybeCelebrate(next);
+    onItemsChange(next);
   };
 
   const clearAllAssignments = () => {
@@ -347,22 +453,33 @@ export function DragDropSplitter({
   const assignedCount = items.filter((i) => i.assignedTo.length > 0).length;
 
   return (
-    <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className="space-y-3">
         {/* Sticky people strip */}
-        <div className="sticky top-2 z-10 bg-stone-900/90 backdrop-blur border border-stone-700 rounded-xl px-3 py-2 flex items-center gap-2 shadow-lg">
+        <div className="sticky top-2 z-10 bg-stone-900/90 backdrop-blur border border-stone-700 rounded-xl px-3 py-2 flex items-center gap-2 shadow-lg relative">
           <div className="flex gap-2 overflow-x-auto">
             {participants.map((person) => (
               <StripAvatar
                 key={person.id}
                 person={person}
                 total={totalByPerson.get(person.id) ?? 0}
+                isSpotlit={spotlightId === person.id}
+                onSpotlight={() => setSpotlightId((cur) => (cur === person.id ? null : person.id))}
               />
             ))}
           </div>
           <span className="text-xs text-stone-400 whitespace-nowrap ml-1">
             {assignedCount} of {items.length} assigned
           </span>
+          {spotlightId !== null && (
+            <button
+              type="button"
+              onClick={() => setSpotlightId(null)}
+              className="text-xs text-amber-400 hover:text-amber-300 whitespace-nowrap"
+            >
+              clear focus ✕
+            </button>
+          )}
           <div className="ml-auto flex gap-1.5">
             <Button
               variant="outline"
@@ -382,6 +499,21 @@ export function DragDropSplitter({
               Clear
             </Button>
           </div>
+
+          <AnimatePresence>
+            {celebrate && (
+              <motion.div
+                initial={{ opacity: 0, scale: 1.6, rotate: -14 }}
+                animate={{ opacity: 1, scale: 1, rotate: -8 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 flex items-center justify-center pointer-events-none z-20"
+              >
+                <span className="font-receipt font-bold text-green-400 border-4 border-green-400 rounded px-4 py-1 text-lg tracking-widest bg-stone-900/80">
+                  ALL ASSIGNED ✓
+                </span>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Item cards */}
@@ -402,6 +534,7 @@ export function DragDropSplitter({
                   )
                 )
               }
+              dimmed={spotlightId !== null && !item.assignedTo.includes(spotlightId)}
             />
           ))}
         </div>

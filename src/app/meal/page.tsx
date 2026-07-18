@@ -292,7 +292,7 @@ export default function MealExpensePage() {
             </div>
 
             {currentStepIndex < steps.length - 1 ? (
-              <Button onClick={handleNext} disabled={!canProceed()} className="bg-green-600 hover:bg-green-500 text-white">
+              <Button onClick={handleNext} disabled={!canProceed()} className={`bg-green-600 hover:bg-green-500 text-white ${currentStep === "split" && canProceed() ? "animate-pulse" : ""}`}>
                 Next
               </Button>
             ) : (
