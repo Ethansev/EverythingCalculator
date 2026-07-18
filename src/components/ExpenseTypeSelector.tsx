@@ -1,34 +1,45 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { UtensilsCrossed, Hotel, Receipt, Car, Upload, PlusCircle, Clock } from "lucide-react"
+import { UtensilsCrossed, Hotel, Receipt, Car, PlusCircle, Clock } from "lucide-react"
 import Link from "next/link"
+import type { LucideIcon } from "lucide-react"
+
+interface CalculatorCard {
+  id: string;
+  href: string;
+  title: string;
+  description: string;
+  icon: LucideIcon;
+  color: string;
+  features: string[];
+}
 
 export function ExpenseTypeSelector() {
-  const availableTypes = [
+  const availableTypes: CalculatorCard[] = [
     {
-      id: 'car' as const,
+      id: 'car',
       href: '/car',
       title: 'Auto Loan Calculator',
       description: 'Calculate monthly payments and visualize loan costs',
       icon: Car,
       color: 'from-orange-400 to-orange-600',
       features: ['Payment calculator', 'Interactive charts', 'Amortization schedule']
-    }
-  ]
-
-  const comingSoonTypes = [
-    {
-      id: 'meal' as const,
-      href: '/meal',
-      title: 'Restaurant & Meals',
-      description: 'Split restaurant bills, takeout orders, and group meals',
-      icon: UtensilsCrossed,
-      color: 'from-green-400 to-green-600',
-      features: ['Upload receipt photos', 'Auto-detect items', 'Drag & drop splitting']
     },
     {
-      id: 'hotel' as const,
+      id: 'meal',
+      href: '/meal',
+      title: 'Split a Check',
+      description: 'Scan a receipt or build one from scratch, then split it fairly to the penny',
+      icon: UtensilsCrossed,
+      color: 'from-green-400 to-green-600',
+      features: ['AI receipt scanning', 'Tap-to-split items', 'Tax, tip & targeted discounts']
+    },
+  ]
+
+  const comingSoonTypes: CalculatorCard[] = [
+    {
+      id: 'hotel',
       href: '/hotel',
       title: 'Hotel & Accommodation',
       description: 'Split hotel costs with varying occupancy per night',
@@ -37,7 +48,7 @@ export function ExpenseTypeSelector() {
       features: ['Multi-night stays', 'Variable occupancy', 'Check-in/out flexibility']
     },
     {
-      id: 'general' as const,
+      id: 'general',
       href: '/general',
       title: 'General Expenses',
       description: 'Split any other group expenses like activities, transport, etc.',
@@ -164,9 +175,9 @@ export function ExpenseTypeSelector() {
         className="text-center mt-12"
       >
         <div className="inline-flex items-center px-6 py-3 rounded-full bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200 dark:border-gray-700">
-          <Upload className="w-5 h-5 mr-2 text-gray-600 dark:text-gray-400" />
+          <Clock className="w-5 h-5 mr-2 text-gray-600 dark:text-gray-400" />
           <span className="text-sm text-gray-600 dark:text-gray-400">
-            All expense types support image upload and automatic item detection
+            More calculators on the way
           </span>
         </div>
       </motion.div>
